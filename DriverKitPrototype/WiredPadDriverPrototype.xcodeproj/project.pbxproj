@@ -1,0 +1,317 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		252501BA73B4F3091BF4D98C /* DriverKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3E6AD346315B759E408F0DE /* DriverKit.framework */; };
+		8FDD38F7119CCF47BC2D6FD8 /* WiredPadTouchDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D91B7A5709B744412C361179 /* WiredPadTouchDriver.cpp */; };
+		904CCFBC1181C24DF6BA272C /* HIDDriverKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DD251D5B668DA61F8DA843D /* HIDDriverKit.framework */; };
+		CAA47A9E9623FB8C1C6E4438 /* WiredPadTouchDriver.iig in Sources */ = {isa = PBXBuildFile; fileRef = 7018E45C38DE0F9CC58483E9 /* WiredPadTouchDriver.iig */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		6DD251D5B668DA61F8DA843D /* HIDDriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = HIDDriverKit.framework; sourceTree = "<group>"; };
+		7018E45C38DE0F9CC58483E9 /* WiredPadTouchDriver.iig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.iig; path = WiredPadTouchDriver.iig; sourceTree = "<group>"; };
+		BC5BA7F87C415D6DB5C88BAF /* WiredPadTouchDriver.dext */ = {isa = PBXFileReference; explicitFileType = "wrapper.driver-extension"; includeInIndex = 0; path = WiredPadTouchDriver.dext; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3E6AD346315B759E408F0DE /* DriverKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = DriverKit.framework; sourceTree = "<group>"; };
+		D91B7A5709B744412C361179 /* WiredPadTouchDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WiredPadTouchDriver.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B17CA5957070672934953138 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				904CCFBC1181C24DF6BA272C /* HIDDriverKit.framework in Frameworks */,
+				252501BA73B4F3091BF4D98C /* DriverKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1487F94AE9F206DA37B5A05B = {
+			isa = PBXGroup;
+			children = (
+				D91B7A5709B744412C361179 /* WiredPadTouchDriver.cpp */,
+				7018E45C38DE0F9CC58483E9 /* WiredPadTouchDriver.iig */,
+				6B8D0419C1FFC042FBC81FC4 /* Frameworks */,
+				64EE9E742533250EAE41F5BB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		64EE9E742533250EAE41F5BB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BC5BA7F87C415D6DB5C88BAF /* WiredPadTouchDriver.dext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6B8D0419C1FFC042FBC81FC4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C3E6AD346315B759E408F0DE /* DriverKit.framework */,
+				6DD251D5B668DA61F8DA843D /* HIDDriverKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C6AF5169C6EF7402C8B8336D /* WiredPadTouchDriver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 03A992130DA68CE2A1C71CA8 /* Build configuration list for PBXNativeTarget "WiredPadTouchDriver" */;
+			buildPhases = (
+				4D5722D2D939D14640138141 /* Sources */,
+				B17CA5957070672934953138 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WiredPadTouchDriver;
+			packageProductDependencies = (
+			);
+			productName = WiredPadTouchDriver;
+			productReference = BC5BA7F87C415D6DB5C88BAF /* WiredPadTouchDriver.dext */;
+			productType = "com.apple.product-type.driver-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F3736AB053642D9D4E796435 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 9CEE8ED1F5C04DEEB5E9C9FF /* Build configuration list for PBXProject "WiredPadDriverPrototype" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1487F94AE9F206DA37B5A05B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 64EE9E742533250EAE41F5BB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C6AF5169C6EF7402C8B8336D /* WiredPadTouchDriver */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D5722D2D939D14640138141 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8FDD38F7119CCF47BC2D6FD8 /* WiredPadTouchDriver.cpp in Sources */,
+				CAA47A9E9623FB8C1C6E4438 /* WiredPadTouchDriver.iig in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		217A9A0B39A75BB237320704 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DRIVERKIT_DEPLOYMENT_TARGET = 27.2;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = driverkit;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				WIREPAD_BUNDLE_PREFIX = com.example.wiredpad;
+			};
+			name = Release;
+		};
+		61EF3389BC9E774CEDC35F2D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WiredPadTouchDriver.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				HEADER_SEARCH_PATHS = "$(DERIVED_FILE_DIR)";
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadTouchDriver";
+				SDKROOT = driverkit;
+				SUPPORTED_PLATFORMS = driverkit;
+			};
+			name = Debug;
+		};
+		D2F927EBC588489A38EFF1E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DRIVERKIT_DEPLOYMENT_TARGET = 27.2;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = driverkit;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				WIREPAD_BUNDLE_PREFIX = com.example.wiredpad;
+			};
+			name = Debug;
+		};
+		F7AC1B9DD839A6B8C9D9FB67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = WiredPadTouchDriver.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				HEADER_SEARCH_PATHS = "$(DERIVED_FILE_DIR)";
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadTouchDriver";
+				SDKROOT = driverkit;
+				SUPPORTED_PLATFORMS = driverkit;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		03A992130DA68CE2A1C71CA8 /* Build configuration list for PBXNativeTarget "WiredPadTouchDriver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				61EF3389BC9E774CEDC35F2D /* Debug */,
+				F7AC1B9DD839A6B8C9D9FB67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9CEE8ED1F5C04DEEB5E9C9FF /* Build configuration list for PBXProject "WiredPadDriverPrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D2F927EBC588489A38EFF1E6 /* Debug */,
+				217A9A0B39A75BB237320704 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F3736AB053642D9D4E796435 /* Project object */;
+}

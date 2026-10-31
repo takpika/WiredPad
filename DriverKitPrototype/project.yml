@@ -1,0 +1,27 @@
+name: WiredPadDriverPrototype
+options:
+  createIntermediateGroups: true
+settings:
+  base:
+    SDKROOT: driverkit
+    DRIVERKIT_DEPLOYMENT_TARGET: '27.2'
+    CODE_SIGNING_ALLOWED: NO
+    WIREPAD_BUNDLE_PREFIX: com.example.wiredpad
+targets:
+  WiredPadTouchDriver:
+    type: driver-extension
+    platform: macOS
+    sources:
+      - path: WiredPadTouchDriver.iig
+      - path: WiredPadTouchDriver.cpp
+    settings:
+      base:
+        SDKROOT: driverkit
+        SUPPORTED_PLATFORMS: driverkit
+        PRODUCT_BUNDLE_IDENTIFIER: "$(WIREPAD_BUNDLE_PREFIX).WiredPadTouchDriver"
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: WiredPadTouchDriver.entitlements
+        HEADER_SEARCH_PATHS: '$(DERIVED_FILE_DIR)'
+    dependencies:
+      - framework: HIDDriverKit.framework
+      - framework: DriverKit.framework

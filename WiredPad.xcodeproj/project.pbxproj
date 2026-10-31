@@ -1,0 +1,505 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		026BB2D77134BE1F9AF92F29 /* WiredPadPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */; };
+		08426A8D257372F32017A7AE /* CoreTouchDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */; };
+		0F74660371423B34C0349F01 /* HardwareVideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */; };
+		178782F1C919AB773CBA8BF0 /* VirtualDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */; };
+		1B1CC25D4DD495066A3372A8 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 200A327252C0064A4DC3F7C3 /* InfoPlist.strings */; };
+		3D4FAEB3DFC8DA24A268503F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C10BB578D0605B27CAB91CB /* Assets.xcassets */; };
+		47E56BA5941F1ADD9D7A00E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 34625D6758919E75F14C24FF /* Assets.xcassets */; };
+		771CF85BF1534E0D867C0346 /* HardwareVideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93046CE68272D884D79659CE /* HardwareVideoDecoder.swift */; };
+		8BBEA09210185CD202BE5AEB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 666342EC924C2B0C7F6CA8FD /* Localizable.strings */; };
+		91E898EC8FE6D571D141F12B /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C1E5C0F47DA7786395197A /* L10n.swift */; };
+		92A109ED7239811B10863489 /* TouchDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = B93B99DC147CC6C904281A40 /* TouchDevice.m */; };
+		A0EF2309C62A1B124450FB45 /* DriverExtensionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */; };
+		C2E87375E3367BF916DDBEA6 /* USBMux.m in Sources */ = {isa = PBXBuildFile; fileRef = 703076D74D01B7A15D0A73D5 /* USBMux.m */; };
+		C705F602E2570F2C424D2705 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813CFB1DB9278128966F728B /* Protocol.swift */; };
+		DACA6112D55946CCEC027B09 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 666342EC924C2B0C7F6CA8FD /* Localizable.strings */; };
+		DDBD17FD2E11362E4727B3E3 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813CFB1DB9278128966F728B /* Protocol.swift */; };
+		E192C6F6F005338E3E171E40 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C1E5C0F47DA7786395197A /* L10n.swift */; };
+		EA5A9BC9C4602C8C6CF22F0A /* WiredPadMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */; };
+		F29CF651D219E74FABF72109 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 200A327252C0064A4DC3F7C3 /* InfoPlist.strings */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		08D1BD698AF12058A1A59AB3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		0E36824FA6511015699A517D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		124ECA0ED15E8943669AC332 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1D170FBA7BF7B765EDDAF3B1 /* WiredPadPad.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WiredPadPad.entitlements; sourceTree = "<group>"; };
+		203FB9F88297C69C25787234 /* WiredPadMac-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WiredPadMac-Bridging-Header.h"; sourceTree = "<group>"; };
+		34625D6758919E75F14C24FF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		554A87AC80D9F130BBA6CFFD /* WiredPadMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WiredPadMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTouchDevice.swift; sourceTree = "<group>"; };
+		6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVideoEncoder.swift; sourceTree = "<group>"; };
+		6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiredPadPadApp.swift; sourceTree = "<group>"; };
+		6C10BB578D0605B27CAB91CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		703076D74D01B7A15D0A73D5 /* USBMux.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = USBMux.m; sourceTree = "<group>"; };
+		72C1E5C0F47DA7786395197A /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		7AED089F95CDE72ABB4B3964 /* WiredPadMac-HID.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "WiredPadMac-HID.entitlements"; sourceTree = "<group>"; };
+		7F2818A47879F34DFC248D69 /* WiredPadPad.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = WiredPadPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		813CFB1DB9278128966F728B /* Protocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocol.swift; sourceTree = "<group>"; };
+		89EAF00667A980A38FB9CB18 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		93046CE68272D884D79659CE /* HardwareVideoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVideoDecoder.swift; sourceTree = "<group>"; };
+		9991FB26351E9BD87DA475AF /* WiredPadMac-DriverKit.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "WiredPadMac-DriverKit.entitlements"; sourceTree = "<group>"; };
+		A2DD24A226EEA80A16C39508 /* WiredPadMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WiredPadMac.entitlements; sourceTree = "<group>"; };
+		B03C2F58573DE027D8BD3D4F /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B93B99DC147CC6C904281A40 /* TouchDevice.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TouchDevice.m; sourceTree = "<group>"; };
+		C9124917300A43231C6B9183 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriverExtensionController.swift; sourceTree = "<group>"; };
+		D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VirtualDisplay.m; sourceTree = "<group>"; };
+		ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiredPadMacApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		4F3AB4FB0FC674CF1B0C48C3 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				200A327252C0064A4DC3F7C3 /* InfoPlist.strings */,
+				666342EC924C2B0C7F6CA8FD /* Localizable.strings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		56D0FB34314F0FF6CE1B3115 /* Mac */ = {
+			isa = PBXGroup;
+			children = (
+				6C10BB578D0605B27CAB91CB /* Assets.xcassets */,
+				5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */,
+				D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */,
+				6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */,
+				124ECA0ED15E8943669AC332 /* Info.plist */,
+				B93B99DC147CC6C904281A40 /* TouchDevice.m */,
+				703076D74D01B7A15D0A73D5 /* USBMux.m */,
+				D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */,
+				203FB9F88297C69C25787234 /* WiredPadMac-Bridging-Header.h */,
+				9991FB26351E9BD87DA475AF /* WiredPadMac-DriverKit.entitlements */,
+				7AED089F95CDE72ABB4B3964 /* WiredPadMac-HID.entitlements */,
+				A2DD24A226EEA80A16C39508 /* WiredPadMac.entitlements */,
+				ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */,
+			);
+			path = Mac;
+			sourceTree = "<group>";
+		};
+		855728B173E5E252E6F8ECC5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				554A87AC80D9F130BBA6CFFD /* WiredPadMac.app */,
+				7F2818A47879F34DFC248D69 /* WiredPadPad.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		927EF65513002FA689275786 = {
+			isa = PBXGroup;
+			children = (
+				56D0FB34314F0FF6CE1B3115 /* Mac */,
+				F5112760DF0383A3DC35A74D /* Pad */,
+				4F3AB4FB0FC674CF1B0C48C3 /* Resources */,
+				EB815112D67FFE9D02BB50F8 /* Shared */,
+				855728B173E5E252E6F8ECC5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EB815112D67FFE9D02BB50F8 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				72C1E5C0F47DA7786395197A /* L10n.swift */,
+				813CFB1DB9278128966F728B /* Protocol.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		F5112760DF0383A3DC35A74D /* Pad */ = {
+			isa = PBXGroup;
+			children = (
+				34625D6758919E75F14C24FF /* Assets.xcassets */,
+				93046CE68272D884D79659CE /* HardwareVideoDecoder.swift */,
+				0E36824FA6511015699A517D /* Info.plist */,
+				1D170FBA7BF7B765EDDAF3B1 /* WiredPadPad.entitlements */,
+				6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */,
+			);
+			path = Pad;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2032CED685334EAC42A7D799 /* WiredPadMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F024D5B42FE48A7DE99D7B40 /* Build configuration list for PBXNativeTarget "WiredPadMac" */;
+			buildPhases = (
+				16DE37AF3C504889BA85EE55 /* Sources */,
+				549CFD0129357B65BB9CE71F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WiredPadMac;
+			packageProductDependencies = (
+			);
+			productName = WiredPadMac;
+			productReference = 554A87AC80D9F130BBA6CFFD /* WiredPadMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA94CDCB2C0C913EF5870006 /* WiredPadPad */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 546FEE2AB91163585EF58EC2 /* Build configuration list for PBXNativeTarget "WiredPadPad" */;
+			buildPhases = (
+				1A83D5E06B52652D8FEA155D /* Sources */,
+				3EEBBA3EE52F38F76679663B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WiredPadPad;
+			packageProductDependencies = (
+			);
+			productName = WiredPadPad;
+			productReference = 7F2818A47879F34DFC248D69 /* WiredPadPad.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1049876E784CD107A06D6561 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 07461DA92834EEC3E4ABF9F2 /* Build configuration list for PBXProject "WiredPad" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+				ja,
+			);
+			mainGroup = 927EF65513002FA689275786;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 855728B173E5E252E6F8ECC5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2032CED685334EAC42A7D799 /* WiredPadMac */,
+				EA94CDCB2C0C913EF5870006 /* WiredPadPad */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3EEBBA3EE52F38F76679663B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				47E56BA5941F1ADD9D7A00E9 /* Assets.xcassets in Resources */,
+				1B1CC25D4DD495066A3372A8 /* InfoPlist.strings in Resources */,
+				8BBEA09210185CD202BE5AEB /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		549CFD0129357B65BB9CE71F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3D4FAEB3DFC8DA24A268503F /* Assets.xcassets in Resources */,
+				F29CF651D219E74FABF72109 /* InfoPlist.strings in Resources */,
+				DACA6112D55946CCEC027B09 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		16DE37AF3C504889BA85EE55 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08426A8D257372F32017A7AE /* CoreTouchDevice.swift in Sources */,
+				A0EF2309C62A1B124450FB45 /* DriverExtensionController.swift in Sources */,
+				0F74660371423B34C0349F01 /* HardwareVideoEncoder.swift in Sources */,
+				E192C6F6F005338E3E171E40 /* L10n.swift in Sources */,
+				C705F602E2570F2C424D2705 /* Protocol.swift in Sources */,
+				92A109ED7239811B10863489 /* TouchDevice.m in Sources */,
+				C2E87375E3367BF916DDBEA6 /* USBMux.m in Sources */,
+				178782F1C919AB773CBA8BF0 /* VirtualDisplay.m in Sources */,
+				EA5A9BC9C4602C8C6CF22F0A /* WiredPadMacApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A83D5E06B52652D8FEA155D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				771CF85BF1534E0D867C0346 /* HardwareVideoDecoder.swift in Sources */,
+				91E898EC8FE6D571D141F12B /* L10n.swift in Sources */,
+				DDBD17FD2E11362E4727B3E3 /* Protocol.swift in Sources */,
+				026BB2D77134BE1F9AF92F29 /* WiredPadPadApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		200A327252C0064A4DC3F7C3 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C9124917300A43231C6B9183 /* en */,
+				89EAF00667A980A38FB9CB18 /* ja */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		666342EC924C2B0C7F6CA8FD /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				08D1BD698AF12058A1A59AB3 /* en */,
+				B03C2F58573DE027D8BD3D4F /* ja */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		6DB6D7504F0EB1C72979E4C3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Mac/WiredPadMac-HID.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				INFOPLIST_FILE = Mac/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadMac";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Mac/WiredPadMac-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+		79A48D688D58DDF2817E553F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "Mac/WiredPadMac-HID.entitlements";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				INFOPLIST_FILE = Mac/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadMac";
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Mac/WiredPadMac-Bridging-Header.h";
+			};
+			name = Release;
+		};
+		9FED0A14E57F03ADB08801E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.10;
+				WIREPAD_BUNDLE_PREFIX = com.example.wiredpad;
+			};
+			name = Debug;
+		};
+		D416F2A89D66A78B5753D2DF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.10;
+				WIREPAD_BUNDLE_PREFIX = com.example.wiredpad;
+			};
+			name = Release;
+		};
+		E218BB43F34ED29EEAB62BBA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Pad/WiredPadPad.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Pad/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadPad";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		FDE3D9CE411257D8D5379613 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Pad/WiredPadPad.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Pad/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WIREPAD_BUNDLE_PREFIX).WiredPadPad";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		07461DA92834EEC3E4ABF9F2 /* Build configuration list for PBXProject "WiredPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9FED0A14E57F03ADB08801E1 /* Debug */,
+				D416F2A89D66A78B5753D2DF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		546FEE2AB91163585EF58EC2 /* Build configuration list for PBXNativeTarget "WiredPadPad" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E218BB43F34ED29EEAB62BBA /* Debug */,
+				FDE3D9CE411257D8D5379613 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F024D5B42FE48A7DE99D7B40 /* Build configuration list for PBXNativeTarget "WiredPadMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6DB6D7504F0EB1C72979E4C3 /* Debug */,
+				79A48D688D58DDF2817E553F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1049876E784CD107A06D6561 /* Project object */;
+}

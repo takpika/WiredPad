@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+  <key>CFBundleExecutable</key><string>WiredPadTouchDriver</string>
+  <key>CFBundleName</key><string>WiredPadTouchDriver</string>
+  <key>CFBundlePackageType</key><string>DEXT</string>
+  <key>CFBundleVersion</key><string>18</string>
+  <key>CFBundleShortVersionString</key><string>1.8</string>
+  <key>IOKitPersonalities</key><dict>
+    <key>WiredPad 10-point Touchscreen</key><dict>
+      <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+      <key>IOClass</key><string>AppleUserHIDEventService</string>
+      <key>IOProviderClass</key><string>IOHIDInterface</string>
+      <key>IOUserClass</key><string>WiredPadTouchDriver</string>
+      <key>IOUserServerName</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+      <key>VendorID</key><integer>22352</integer>
+      <key>ProductID</key><integer>1</integer>
+      <key>PrimaryUsagePage</key><integer>13</integer>
+      <key>PrimaryUsage</key><integer>4</integer>
+      <key>IOProbeScore</key><integer>2000</integer>
+    </dict>
+  </dict>
+  <key>OSBundleUsageDescription</key><string>Delivers up to ten touch contacts to the WiredPad virtual display.</string>
+</dict></plist>
