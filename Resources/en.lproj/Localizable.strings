@@ -56,6 +56,8 @@
 "display.error.unavailable" = "This macOS version does not expose the virtual-display API.";
 "display.error.create" = "macOS refused to create the virtual display.";
 "display.error.mode" = "macOS rejected the virtual-display mode.";
+"ipad.capture.stopped.title" = "Not receiving the Mac's screen";
+"ipad.capture.stopped.detail" = "The Mac is locked or its display is off.\nUnlock it to continue.";
 "ipad.status.waiting" = "Waiting for your Mac over USB…";
 "ipad.status.connected" = "Connected to Mac.";
 "ipad.status.disconnected" = "Mac disconnected. Waiting to reconnect…";

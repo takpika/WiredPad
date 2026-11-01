@@ -56,6 +56,8 @@
 "display.error.unavailable" = "このmacOSでは仮想ディスプレイAPIを利用できません。";
 "display.error.create" = "macOSが仮想ディスプレイの作成を拒否しました。";
 "display.error.mode" = "macOSが仮想ディスプレイのモードを拒否しました。";
+"ipad.capture.stopped.title" = "Macの画面を取り込めていません";
+"ipad.capture.stopped.detail" = "Macがロック中か、画面がオフになっています。\nロックを解除すると再開します。";
 "ipad.status.waiting" = "MacからのUSB接続を待っています…";
 "ipad.status.connected" = "Macと接続しました。";
 "ipad.status.disconnected" = "Macとの接続が切れました。再接続を待っています…";

@@ -320,6 +320,10 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         session?.send(.diagnostics, payload)
     }
 
+    private func sendCaptureState(running: Bool) {
+        session?.send(.capture, Data([running ? 1 : 0]))
+    }
+
     private var queuedBytes: Int {
         sendLock.lock(); defer { sendLock.unlock() }
         return sendSession?.unackedBytes ?? 0
@@ -1254,6 +1258,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         linkLog.info("screen capture stopped: \(error.localizedDescription, privacy: .public)")
         Task { @MainActor [weak self] in
             guard let self, self.stream === stream else { return }
+            self.sendCaptureState(running: false)
             // While the displays are off a new stream would stop at once; their wake restarts it.
             if CGDisplayIsAsleep(CGMainDisplayID()) == 0 { self.restartCapture() }
         }
@@ -1273,6 +1278,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 if connectionGeneration == generation, running {
                     stream = restarted
                     linkLog.info("screen capture restarted")
+                    sendCaptureState(running: true)
                 } else {
                     try? await restarted.stopCapture()
                 }

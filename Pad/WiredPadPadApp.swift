@@ -24,6 +24,9 @@ struct WiredPadPadApp: App {
                         session.sendTouches(points)
                     }
                     .ignoresSafeArea()
+                    if session.captureStopped {
+                        CaptureStoppedView()
+                    }
                     if session.showDiagnostics {
                         VStack {
                             Spacer()
@@ -44,6 +47,28 @@ struct WiredPadPadApp: App {
             .onChange(of: scenePhase) { _, phase in
                 session.sceneChanged(phase)
             }
+        }
+    }
+}
+
+/// Covers the last frame while the Mac is not capturing, so it is not taken for a live
+/// screen that has stopped responding.
+private struct CaptureStoppedView: View {
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.7).ignoresSafeArea()
+            VStack(spacing: 14) {
+                Image(systemName: "pause.circle")
+                    .font(.system(size: 54, weight: .light))
+                Text(L10n.tr("ipad.capture.stopped.title"))
+                    .font(.title2.weight(.semibold))
+                Text(L10n.tr("ipad.capture.stopped.detail"))
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.white)
+            .padding(32)
         }
     }
 }
@@ -154,6 +179,8 @@ final class PadSession: ObservableObject {
     @Published var connected = false
     @Published var videoStatus = L10n.tr("ipad.video.waiting")
     @Published var showDiagnostics = false
+    /// The Mac stopped capturing its screen, so the picture shown is no longer live.
+    @Published var captureStopped = false
     @Published private(set) var pairingPrompt: PairingPrompt?
     @Published private(set) var pairedMacs: [PairingStore.Peer] = []
     private var macVideoStatus = L10n.tr("mac.telemetry.waiting")
@@ -488,6 +515,7 @@ final class PadSession: ObservableObject {
         stopVolumeForwarding()
         startVolumeForwarding()
         showDiagnostics = false
+        captureStopped = false
         pairingServer?.answer(false)
         updatePairingListener()
         let screen = UIScreen.main.nativeBounds
@@ -541,6 +569,7 @@ final class PadSession: ObservableObject {
         sessionMacName = nil
         route = WireSession.LinkStatus()
         telemetryTimer?.invalidate()
+        captureStopped = false
         if connected {
             connected = false
             stopVolumeForwarding()
@@ -708,6 +737,8 @@ final class PadSession: ObservableObject {
         } else if type == WireType.diagnostics.rawValue,
                   let control = try? JSONDecoder().decode(DiagnosticsControl.self, from: data) {
             DispatchQueue.main.async { self.showDiagnostics = control.visible }
+        } else if type == WireType.capture.rawValue, let flag = data.first {
+            DispatchQueue.main.async { self.captureStopped = flag == 0 }
         } else if type == WireType.peerToPeer.rawValue, let flag = data.first {
             DispatchQueue.main.async {
                 self.macWantsPeerToPeer = flag == 1

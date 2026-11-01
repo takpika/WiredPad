@@ -16,6 +16,9 @@ enum WireType: UInt8 {
     /// iPad to Mac, a `DisplaySize`: the area the video fills changed, after a rotation or
     /// a window resize.
     case displaySize = 12
+    /// Mac to iPad, one byte: 0 when screen capture stops, as it does while the Mac is
+    /// locked, and 1 when it runs again.
+    case capture = 13
 
     // Link layer: every connection starts with a hello/welcome exchange, then carries
     // numbered session data so a session can move between USB and Wi-Fi without loss.
