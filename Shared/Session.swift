@@ -229,10 +229,15 @@ final class WireSession {
 
     private var links: [Attached] = []
     private var primary: WireLink?
-    /// The one standby link that also carries the stream, so it is warm when it takes over.
-    /// Only while the primary is wired: wireless links share a radio, and copies on a second
+    /// The one standby link kept busy with filler while the primary is wired. An idle Wi-Fi
+    /// link stalls when it suddenly has to carry the stream: the radio dozes, its rate drops
+    /// and TCP starts slow again. Filler keeps it ready at a fraction of the stream's airtime.
+    /// Only while the primary is wired: wireless links share a radio, and filler on a second
     /// one would take airtime from the primary.
-    private var mirror: WireLink?
+    private var warmStandby: WireLink?
+    /// Bytes per second of filler on the standby link; 0 sends none. Set on `queue`.
+    var standbyFillRate = 0
+    private var lastFill: TimeInterval = 0
     private var nextSeq: UInt64 = 1
     private var unacked: [(seq: UInt64, packet: Data, sent: TimeInterval)] = []
     private var unackedHead = 0
@@ -256,7 +261,7 @@ final class WireSession {
     static let responsiveDelay: TimeInterval = 0.08
     /// How long a wireless primary may go without answering before another link takes over.
     static let stallDelay: TimeInterval = 0.4
-    /// The standby link stops getting copies while this much is waiting to go out on it, so
+    /// The standby link stops getting filler while this much is waiting to go out on it, so
     /// it never builds up a queue of its own.
     static let standbyBacklog = 64 * 1024
 
@@ -434,7 +439,7 @@ final class WireSession {
     private func detach(_ link: WireLink) {
         guard links.contains(where: { $0.link === link }) else { return }
         links.removeAll { $0.link === link }
-        if mirror === link { mirror = nil }
+        if warmStandby === link { warmStandby = nil }
         linkLog.info("lost \(link.kind.rawValue, privacy: .public) link")
         choosePrimary()
     }
@@ -474,10 +479,10 @@ final class WireSession {
         primary = best?.link
         if let best, best.rank <= NetworkPath.wiredLAN.rank {
             let others = links.filter { $0 !== best }
-            mirror = (others.filter { $0.goodSince != nil }.min { $0.rank < $1.rank }
+            warmStandby = (others.filter { $0.goodSince != nil }.min { $0.rank < $1.rank }
                 ?? others.min { $0.worstDelay(now: now) < $1.worstDelay(now: now) })?.link
         } else {
-            mirror = nil
+            warmStandby = nil
         }
         if let best, best.link !== previous {
             if previous != nil { handovers += 1 }
@@ -494,19 +499,15 @@ final class WireSession {
         }
     }
 
-    /// Sends this link every unacknowledged message it has not carried yet. The primary always
-    /// gets them; the mirror only while its backlog is small; other links none. Returns how
+    /// Sends the primary every unacknowledged message it has not carried yet. Returns how
     /// many it sent.
     @discardableResult
     private func feed(_ entry: Attached) -> Int {
-        guard unackedHead < unacked.count else { return 0 }
-        let isPrimary = entry.link === primary
-        guard isPrimary || entry.link === mirror else { return 0 }
+        guard unackedHead < unacked.count, entry.link === primary else { return 0 }
         let firstSeq = unacked[unackedHead].seq
         var index = unackedHead + Int(max(entry.sentThrough + 1, firstSeq) - firstSeq)
         var sent = 0
         while index < unacked.count {
-            if !isPrimary, entry.link.pendingBytes > Self.standbyBacklog { break }
             entry.link.send(unacked[index].packet)
             entry.sentThrough = unacked[index].seq
             index += 1
@@ -524,8 +525,11 @@ final class WireSession {
         for entry in links where now - entry.lastReceive > Self.linkTimeout {
             entry.link.close()
         }
-        // Let a standby link that fell behind catch up once its backlog drains.
-        for entry in links where entry.link !== primary { feed(entry) }
+        if let standby = warmStandby, standbyFillRate > 0, standby.pendingBytes < Self.standbyBacklog {
+            let bytes = min(Self.standbyBacklog, Int(Double(standbyFillRate) * min(0.1, now - lastFill)))
+            if bytes > 0 { standby.send(Wire.packet(.padding, Data(count: bytes))) }
+        }
+        lastFill = now
         if now - lastPing >= Self.pingInterval {
             lastPing = now
             let ping = Wire.packet(.linkPing, WireFraming.uint64(now.bitPattern))

@@ -284,6 +284,13 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     private var captureFilter: SCContentFilter?
     private var captureConfig: SCStreamConfiguration?
     private var captureRestarting = false
+    /// The iPad's full screen, which the virtual display was made to fit.
+    private var displayHello: DisplayHello?
+    /// The video size now shown, as oriented on the iPad, and the one the iPad last asked for.
+    private var displaySize: DisplaySize?
+    private var wantedSize: DisplaySize?
+    private var resizing = false
+    private var displayModeName = "native"
     private var wakeObservers: [NSObjectProtocol] = []
     private let captureQueue = DispatchQueue(label: "WiredPad.capture")
     private var lastRateCheck: TimeInterval = 0
@@ -535,6 +542,11 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         } else {
             guard !welcome.resumed, welcome.sessionID == pendingSessionID else { link.close(); return }
             let created = WireSession(id: welcome.sessionID, queue: sessionQueue)
+            // Off by default: acknowledgements over USB come back at once, so little is in
+            // flight when the cable goes, and an idle Wi-Fi link takes over without a stall.
+            // `defaults write <bundle id> WiredPad.standbyFillKbps <n>` turns filler on.
+            let fillKbps = UserDefaults.standard.object(forKey: "WiredPad.standbyFillKbps") as? Int ?? 0
+            created.standbyFillRate = fillKbps * 1000 / 8
             created.onMessage = { [weak self] type, data in self?.handleMessage(type, data, generation: generation) }
             created.onLinksChanged = { [weak self, weak created] status in
                 let details = created.map { L10n.tr("mac.diagnostics.links", $0.handovers, $0.resentPackets,
@@ -956,6 +968,17 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 guard self.connectionGeneration == generation, !self.manuallyStopped, !self.running else { return }
                 Task { await self.beginDisplay(hello: hello, generation: generation) }
             }
+        case WireType.displaySize.rawValue:
+            guard let size = try? JSONDecoder().decode(DisplaySize.self, from: payload),
+                  (240...4096).contains(size.width), (240...4096).contains(size.height),
+                  size.width.isMultiple(of: 2), size.height.isMultiple(of: 2),
+                  (120...2048).contains(size.logicalWidth), (120...2048).contains(size.logicalHeight),
+                  size.logicalWidth <= size.width, size.logicalHeight <= size.height else { return }
+            DispatchQueue.main.async {
+                guard self.connectionGeneration == generation else { return }
+                self.wantedSize = size
+                Task { await self.applyWantedSize() }
+            }
         case WireType.touches.rawValue:
             if let packet = try? JSONDecoder().decode(TouchPacket.self, from: payload) {
                 DispatchQueue.main.async { self.applyTouches(packet.points) }
@@ -1012,22 +1035,16 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         }
         displayID = id
         do {
-            let helper = Process()
-            helper.executableURL = Bundle.main.executableURL?.deletingLastPathComponent()
-                .appendingPathComponent("WiredPadModeHelper")
-            helper.arguments = [String(id), String(width), String(height),
-                                String(hello.logicalWidth), String(hello.logicalHeight)]
-            let output = Pipe()
-            helper.standardOutput = output
-            try helper.run()
-            helper.waitUntilExit()
-            guard helper.terminationStatus == 0 else {
+            // A display kept from an earlier session may still have another size.
+            _ = WiredPadResizeDisplay(UInt32(width), UInt32(height), UInt32(hello.logicalWidth),
+                                      UInt32(hello.logicalHeight), UInt32(hello.maximumFramesPerSecond))
+            guard let displayMode = try selectMode(display: id, width: width, height: height,
+                                                   logicalWidth: hello.logicalWidth,
+                                                   logicalHeight: hello.logicalHeight) else {
                 status = L10n.tr("mac.error.mode")
                 disconnect()
                 return
             }
-            let displayMode = String(data: output.fileHandleForReading.readDataToEndOfFile(),
-                                     encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "native"
             var capturedDisplay: SCDisplay?
             for _ in 0..<10 {
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
@@ -1098,23 +1115,116 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             connecting = false
             reconnectWanted = false
             running = true
+            displayHello = hello
+            displaySize = DisplaySize(width: width, height: height, logicalWidth: hello.logicalWidth,
+                                      logicalHeight: hello.logicalHeight)
+            displayModeName = displayMode
             sendDiagnosticsControl()
             let timer = DispatchSource.makeTimerSource(queue: captureQueue)
             timer.schedule(deadline: .now() + 1, repeating: 1)
             timer.setEventHandler { [weak self] in self?.sendVideoTelemetry() }
             timer.resume()
             videoTimer = timer
-            displaySummary = L10n.tr("mac.menu.summary", width, height, hello.maximumFramesPerSecond,
-                                     selectedEncoder.codec.uppercased())
-            status = touchDevice != nil
-                ? L10n.tr("mac.status.connected", width, height, hello.logicalWidth,
-                          hello.logicalHeight, hello.pixelsPerInch, hello.maximumFramesPerSecond,
-                          displayMode, selectedEncoder.codec.uppercased(), selectedEncoder.frameRate)
-                : L10n.tr("mac.error.touchdevice")
+            showDisplayStatus()
+            // The iPad may already have asked for another size, such as a portrait one.
+            await applyWantedSize()
         } catch {
             guard connectionGeneration == generation, !manuallyStopped else { return }
             status = L10n.tr("mac.error.capture.start", error.localizedDescription)
             disconnect()
+        }
+    }
+
+    private func showDisplayStatus() {
+        guard let hello = displayHello, let size = displaySize, let encoder else { return }
+        displaySummary = L10n.tr("mac.menu.summary", size.width, size.height, hello.maximumFramesPerSecond,
+                                 encoder.codec.uppercased())
+        status = touchDevice != nil
+            ? L10n.tr("mac.status.connected", size.width, size.height, size.logicalWidth,
+                      size.logicalHeight, hello.pixelsPerInch, hello.maximumFramesPerSecond,
+                      displayModeName, encoder.codec.uppercased(), encoder.frameRate)
+            : L10n.tr("mac.error.touchdevice")
+    }
+
+    /// Picks the display mode with the given pixels, HiDPI if there is one. Returns which
+    /// kind it picked, or nil if there was none.
+    private func selectMode(display: CGDirectDisplayID, width: Int, height: Int,
+                            logicalWidth: Int, logicalHeight: Int) throws -> String? {
+        let helper = Process()
+        helper.executableURL = Bundle.main.executableURL?.deletingLastPathComponent()
+            .appendingPathComponent("WiredPadModeHelper")
+        helper.arguments = [String(display), String(width), String(height),
+                            String(logicalWidth), String(logicalHeight)]
+        let output = Pipe()
+        helper.standardOutput = output
+        try helper.run()
+        helper.waitUntilExit()
+        guard helper.terminationStatus == 0 else { return nil }
+        return String(data: output.fileHandleForReading.readDataToEndOfFile(),
+                      encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "native"
+    }
+
+    /// Follows the iPad's video area, after a rotation or a window resize, by giving the
+    /// display a mode of that size.
+    @MainActor private func applyWantedSize() async {
+        guard running, !resizing, let hello = displayHello, let current = displaySize,
+              let wanted = wantedSize, wanted != current, let previousEncoder = encoder,
+              let stream, let config = captureConfig else { return }
+        resizing = true
+        defer { resizing = false }
+        let generation = connectionGeneration
+        guard max(wanted.width, wanted.height) <= hello.width, min(wanted.width, wanted.height) <= hello.height else {
+            linkLog.error("display size \(wanted.width)x\(wanted.height) is larger than the iPad screen")
+            wantedSize = current
+            return
+        }
+        do {
+            guard WiredPadResizeDisplay(UInt32(wanted.width), UInt32(wanted.height), UInt32(wanted.logicalWidth),
+                                        UInt32(wanted.logicalHeight), UInt32(hello.maximumFramesPerSecond)),
+                  let mode = try selectMode(display: displayID, width: wanted.width, height: wanted.height,
+                                            logicalWidth: wanted.logicalWidth, logicalHeight: wanted.logicalHeight)
+            else {
+                linkLog.error("could not set display mode \(wanted.width)x\(wanted.height)")
+                wantedSize = current
+                return
+            }
+            displayModeName = mode
+            let encoder = try HardwareVideoEncoder(codec: previousEncoder.codec, width: wanted.width,
+                                                   height: wanted.height, frameRate: previousEncoder.frameRate,
+                                                   onPacket: { [weak self] type, payload in
+                self?.enqueueVideo(type, payload)
+            })
+            encoder.setBitRate(previousEncoder.bitRate)
+            // The display's size changed, so capture it afresh at the new size.
+            var captured: SCDisplay?
+            for _ in 0..<10 {
+                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+                captured = content.displays.first { $0.displayID == displayID && $0.width == wanted.logicalWidth }
+                if captured != nil { break }
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            guard connectionGeneration == generation, running else { return }
+            let filter = captured.map { SCContentFilter(display: $0, excludingWindows: []) } ?? captureFilter
+            config.width = wanted.width
+            config.height = wanted.height
+            captureQueue.sync { self.encoder = encoder }
+            if let filter {
+                captureFilter = filter
+                try await stream.updateContentFilter(filter)
+            }
+            try await stream.updateConfiguration(config)
+            displaySize = wanted
+            linkLog.info("display is now \(wanted.width)x\(wanted.height)")
+            showDisplayStatus()
+        } catch {
+            linkLog.error("display resize failed: \(error.localizedDescription, privacy: .public)")
+            wantedSize = current
+            return
+        }
+        // The iPad may have asked again meanwhile.
+        if wantedSize != displaySize {
+            resizing = false
+            await applyWantedSize()
         }
     }
 
@@ -1206,6 +1316,9 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         }
         captureFilter = nil
         captureConfig = nil
+        displayHello = nil
+        displaySize = nil
+        wantedSize = nil
         encoder = nil
         videoTimer?.cancel()
         videoTimer = nil

@@ -21,6 +21,30 @@ static id heldDisplay;
 static NSString *displayError;
 static NSString *lastDisplayUUID;
 
+static id displaySettings(Class settingsClass, Class modeClass, uint32_t width, uint32_t height,
+                          uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate) {
+    CGVirtualDisplayMode *mode = [(CGVirtualDisplayMode *)[modeClass alloc] initWithWidth:width height:height refreshRate:refreshRate];
+    CGVirtualDisplayMode *logicalMode = [(CGVirtualDisplayMode *)[modeClass alloc]
+                                         initWithWidth:logicalWidth height:logicalHeight refreshRate:refreshRate];
+    id settings = [settingsClass new];
+    [settings setValue:@[mode, logicalMode] forKey:@"modes"];
+    [settings setValue:@1 forKey:@"hiDPI"];
+    return settings;
+}
+
+/// Replaces the held display's modes. The size must fit the maximum it was created with.
+BOOL WiredPadResizeDisplay(uint32_t width, uint32_t height, uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate) {
+    Class modeClass = NSClassFromString(@"CGVirtualDisplayMode");
+    Class settingsClass = NSClassFromString(@"CGVirtualDisplaySettings");
+    if (!heldDisplay || !modeClass || !settingsClass) return NO;
+    @try {
+        return [heldDisplay applySettings:displaySettings(settingsClass, modeClass, width, height,
+                                                          logicalWidth, logicalHeight, refreshRate)];
+    } @catch (NSException *exception) {
+        return NO;
+    }
+}
+
 void WiredPadDestroyDisplay(void) {
     heldDisplay = nil;
     lastDisplayUUID = nil;
@@ -69,11 +93,15 @@ uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logical
     @try {
         CGVirtualDisplayDescriptor *descriptor = [descriptorClass new];
         [descriptor setValue:@"WiredPad" forKey:@"name"];
-        [descriptor setValue:@(width) forKey:@"maxPixelsWide"];
-        [descriptor setValue:@(height) forKey:@"maxPixelsHigh"];
+        // Room for the screen either way up, so a portrait iPad gets a portrait mode.
+        uint32_t longSide = MAX(width, height);
+        [descriptor setValue:@(longSide) forKey:@"maxPixelsWide"];
+        [descriptor setValue:@(longSide) forKey:@"maxPixelsHigh"];
         [descriptor setValue:@(0x5750) forKey:@"vendorID"];
         [descriptor setValue:@((width ^ (height << 1)) & 0xffff) forKey:@"productID"];
-        [descriptor setValue:@(0x0001) forKey:@"serialNum"];
+        // Serial 1 was turned with a private WindowServer call in a test build, and macOS
+        // remembers that per display; a new serial starts unturned.
+        [descriptor setValue:@(0x0002) forKey:@"serialNum"];
         [descriptor setValue:[NSValue valueWithSize:NSMakeSize((double)width * 25.4 / pixelsPerInch,
                                                               (double)height * 25.4 / pixelsPerInch)]
                          forKey:@"sizeInMillimeters"];
@@ -87,13 +115,8 @@ uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logical
             displayError = @"display.error.create";
             return 0;
         }
-        CGVirtualDisplayMode *mode = [(CGVirtualDisplayMode *)[modeClass alloc] initWithWidth:width height:height refreshRate:refreshRate];
-        CGVirtualDisplayMode *logicalMode = [(CGVirtualDisplayMode *)[modeClass alloc]
-                                             initWithWidth:logicalWidth height:logicalHeight refreshRate:refreshRate];
-        id settings = [settingsClass new];
-        [settings setValue:@[mode, logicalMode] forKey:@"modes"];
-        [settings setValue:@1 forKey:@"hiDPI"];
-        BOOL ok = [display applySettings:settings];
+        BOOL ok = [display applySettings:displaySettings(settingsClass, modeClass, width, height,
+                                                         logicalWidth, logicalHeight, refreshRate)];
         if (!ok) {
             displayError = @"display.error.mode";
             return 0;

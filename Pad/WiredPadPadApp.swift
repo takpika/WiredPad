@@ -509,6 +509,9 @@ final class PadSession: ObservableObject {
                                  maximumFramesPerSecond: UIScreen.main.maximumFramesPerSecond,
                                  pixelsPerInch: Self.screenPixelsPerInch())
         if let payload = try? JSONEncoder().encode(hello) { session.send(.hello, payload) }
+        // The Mac starts at the full screen; the canvas tells it the actual area.
+        sentSize = nil
+        if let canvas { canvasResized(canvas.bounds.size) }
         telemetryTimer?.invalidate()
         telemetryTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             self?.sendTelemetry()
@@ -733,6 +736,30 @@ final class PadSession: ObservableObject {
         session.send(.touches, data)
     }
 
+    private var sentSize: DisplaySize?
+    private var pendingResize: DispatchWorkItem?
+
+    /// Asks the Mac to match the video area once it has settled: a rotation or window
+    /// resize passes through sizes on its way.
+    fileprivate func canvasResized(_ points: CGSize) {
+        guard points.width >= 120, points.height >= 120 else { return }
+        let scale = UIScreen.main.nativeScale
+        // HiDPI needs exactly twice the points in pixels, so keep both even.
+        func pixels(_ value: CGFloat) -> Int { max(4, Int(value * scale) / 4 * 4) }
+        let width = pixels(points.width), height = pixels(points.height)
+        let size = DisplaySize(width: width, height: height, logicalWidth: Int(Double(width) / scale),
+                               logicalHeight: Int(Double(height) / scale))
+        pendingResize?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, let session = self.session, self.connected, size != self.sentSize,
+                  let data = try? JSONEncoder().encode(size) else { return }
+            self.sentSize = size
+            session.send(.displaySize, data)
+        }
+        pendingResize = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+    }
+
     private func sendTelemetry() {
         guard let session, connected else { return }
         let report = VideoTelemetry(side: "ipad", frames: decodedFrames,
@@ -757,6 +784,7 @@ private struct TouchScreen: UIViewRepresentable {
     func makeUIView(context: Context) -> TouchCanvas {
         let canvas = TouchCanvas()
         canvas.onTouches = onTouches
+        canvas.onResize = { [weak session] size in session?.canvasResized(size) }
         session.canvas = canvas
         return canvas
     }
@@ -770,18 +798,25 @@ private struct TouchScreen: UIViewRepresentable {
 private final class TouchCanvas: UIView {
     private let videoLayer = AVSampleBufferDisplayLayer()
     var onTouches: (([TouchPoint]) -> Void)?
+    var onResize: ((CGSize) -> Void)?
     private var fingers: [ObjectIdentifier: (Int, CGPoint)] = [:]
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isMultipleTouchEnabled = true
         backgroundColor = .black
-        videoLayer.videoGravity = .resize
+        // While the Mac catches up with a rotation or window resize, frames of the old shape
+        // are fitted rather than stretched.
+        videoLayer.videoGravity = .resizeAspect
         layer.addSublayer(videoLayer)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override func layoutSubviews() { super.layoutSubviews(); videoLayer.frame = bounds }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        videoLayer.frame = bounds
+        onResize?(bounds.size)
+    }
 
     func display(_ image: CVPixelBuffer) -> Bool {
         guard videoLayer.isReadyForMoreMediaData else { return false }

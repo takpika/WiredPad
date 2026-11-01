@@ -13,6 +13,9 @@ enum WireType: UInt8 {
     case pairingKey = 10
     /// Mac to iPad, one byte: 1 while the Mac wants the iPad reachable over AWDL.
     case peerToPeer = 11
+    /// iPad to Mac, a `DisplaySize`: the area the video fills changed, after a rotation or
+    /// a window resize.
+    case displaySize = 12
 
     // Link layer: every connection starts with a hello/welcome exchange, then carries
     // numbered session data so a session can move between USB and Wi-Fi without loss.
@@ -24,6 +27,9 @@ enum WireType: UInt8 {
     /// Per-link round-trip check: the receiver echoes the payload back as `linkPong`.
     case linkPing = 25
     case linkPong = 26
+    /// Filler the receiver ignores. It keeps a standby link's radio and TCP connection
+    /// busy enough to take over without a stall.
+    case padding = 27
 
     // Wireless pairing by numeric comparison.
     case pairStart = 30
@@ -114,6 +120,14 @@ struct DisplayHello: Codable {
     let hardwareDecoders: [String]
     let maximumFramesPerSecond: Int
     let pixelsPerInch: Int
+}
+
+/// The video area in pixels, as it is oriented on the iPad, and in points.
+struct DisplaySize: Codable, Equatable {
+    let width: Int
+    let height: Int
+    let logicalWidth: Int
+    let logicalHeight: Int
 }
 
 struct VideoFormat: Codable, Equatable {
