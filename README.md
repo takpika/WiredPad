@@ -4,7 +4,7 @@
 
 <p align="center"><b>English</b> | <a href="README.ja.md">日本語</a></p>
 
-WiredPad lets you use an iPad as a touch screen for macOS 27. macOS 27 can deliver direct touches from a touch screen to AppKit apps, and WiredPad turns a USB-connected iPad into that touch screen. Your fingers on the iPad reach Mac apps as native multi-touch, up to ten contacts at once, not as mouse clicks.
+WiredPad lets you use an iPad as a touch screen for macOS 27. macOS 27 can deliver direct touches from a touch screen to AppKit apps, and WiredPad turns an iPad, connected by USB or Wi‑Fi, into that touch screen. Your fingers on the iPad reach Mac apps as native multi-touch, up to ten contacts at once, not as mouse clicks.
 
 To make that possible, WiredPad creates a virtual Mac display at the iPad's native resolution and streams it to the iPad with hardware HEVC or H.264. A HIDDriverKit extension sends the iPad's touches back as a digitizer attached to that display. The iPad's volume buttons also work as Mac volume keys.
 
@@ -15,6 +15,8 @@ This repository contains source code, not a ready-to-install release. The displa
 - Up to ten native AppKit direct touches on the virtual display when the signed HIDDriverKit extension is active.
 - USB video with VideoToolbox hardware encoding and decoding, HiDPI, and the iPad's reported display refresh rate.
 - Mac volume control using the iPad's physical volume buttons.
+- USB first, plus one network path standing by: wired LAN, Wi‑Fi LAN or AWDL (Apple peer-to-peer Wi‑Fi). Each link is checked every 100 ms, and the session uses the best one that responds well. Wi‑Fi LAN and AWDL have no fixed order: every 10 minutes, and whenever the path in use becomes much slower than usual, the Mac tries the other one for 10 seconds and keeps the steadier one. Because AWDL slows the Wi‑Fi network while it runs, Wi‑Fi LAN is judged only by measurements taken while AWDL is off. Wi‑Fi Aware is only on the iPad side for now, for future hosts other than a Mac: macOS has no Wi‑Fi Aware API, and the iPad needs the Wi‑Fi Aware entitlement and supporting hardware. While USB is connected, a Wi‑Fi link runs alongside it, so unplugging or plugging in the cable switches over without dropping frames.
+- Pairing: an iPad connected by USB pairs automatically. For Wi‑Fi only, choose the iPad under **Nearby iPads** in the menu bar and confirm the same six-digit code on both devices.
 - Automatic video reconnection after locking the iPad or unplugging and reconnecting USB.
 - English and Japanese app UI. Add another language under `Resources/<language>.lproj`.
 
@@ -24,7 +26,8 @@ This repository contains source code, not a ready-to-install release. The displa
 - Video capture uses ScreenCaptureKit. macOS requires Screen Recording permission and shows its screen-sharing indicator while streaming.
 - Native touch needs Apple-granted HID Virtual Device and DriverKit entitlements, signing certificates, and matching provisioning profiles. Your own App IDs and profiles are required. The entitlements in this repository do not grant access by themselves.
 - No signed binaries or provisioning profiles are included. The iPad app is installed through Xcode for development.
-- The iPad listens on TCP port 41027 for the USB tunnel. The listener may also be reachable from the iPad's local network. The protocol does not add its own authentication or encryption; use it only on trusted networks and with devices you trust. Network isolation and pairing are not implemented yet.
+- Wi‑Fi traffic is encrypted with TLS using a separate pre-shared key for each paired Mac, so only paired Macs can connect. The USB listener on port 41027 accepts only connections through the USB tunnel. Pairing is open only while the iPad shows its waiting screen and pauses after repeated failures. Keys stay in each device's Keychain and are not synced. This design has not had an independent security review.
+- While on USB, the video is also sent over Wi‑Fi, which uses more Wi‑Fi bandwidth and battery. On weak Wi‑Fi the switch away from USB can still skip a few frames.
 - Physical volume-button detection on iPad uses observed system-volume changes and `MPVolumeView`. It restores the iPad volume after each press and when the session ends. Recheck this behavior after iPadOS updates.
 
 ## Build from source
@@ -58,7 +61,7 @@ xcodebuild -project DriverKitPrototype/WiredPadDriverPrototype.xcodeproj -scheme
 
 ## How it works
 
-The Mac app creates a virtual display and captures only that display with ScreenCaptureKit. VideoToolbox encodes frames for a USB tunnel through `usbmuxd`; the iPad app decodes and presents them. The iPad sends touch coordinates and volume steps back over the same connection. CoreHID creates virtual touch and Consumer Control devices; the DriverKit extension attaches the touch service to the virtual display's UUID.
+The Mac app creates a virtual display and captures only that display with ScreenCaptureKit. VideoToolbox encodes the frames, and they go to the iPad through a USB tunnel from `usbmuxd` or over Wi‑Fi; the iPad app decodes and presents them. The iPad sends touch coordinates and volume steps back the same way. Every message is numbered and kept until the other side acknowledges it. The receiver drops duplicates and puts messages back in order, so a session moves between USB and Wi‑Fi without losing or repeating anything. CoreHID creates virtual touch and Consumer Control devices; the DriverKit extension attaches the touch service to the virtual display's UUID.
 
 See [DriverKit details](DriverKitPrototype/README.md) and the [experimental Sidecar investigation](SIDECAR_ANALYSIS.md). That investigation records observations, not a supported Apple API contract.
 

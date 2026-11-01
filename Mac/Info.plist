@@ -18,10 +18,19 @@
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_wiredpad._tcp</string>
+		<string>_wiredpad-pair._tcp</string>
+	</array>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 takpika</string>
 	<key>NSIsTouchNative</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>WiredPad uses Bluetooth to notice quickly when the iPad joins or leaves a Wi-Fi network.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>WiredPad uses the local network to connect your Mac and iPad over USB and Wi-Fi.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSScreenCaptureUsageDescription</key>

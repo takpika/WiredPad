@@ -1,2 +1,3 @@
 "NSScreenCaptureUsageDescription" = "WiredPad captures its virtual display so it can show the image on your iPad.";
-"NSLocalNetworkUsageDescription" = "WiredPad receives the USB connection from the Mac app.";
+"NSLocalNetworkUsageDescription" = "WiredPad uses the local network to connect your Mac and iPad over USB and Wi‑Fi.";
+"NSBluetoothAlwaysUsageDescription" = "WiredPad uses Bluetooth to notice quickly when the iPad joins or leaves a Wi‑Fi network.";

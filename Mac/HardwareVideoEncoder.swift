@@ -39,16 +39,25 @@ final class HardwareVideoEncoder {
         self.bitRate = min(36_000_000, max(8_000_000, width * height * frameRate / 10))
         self.onPacket = onPacket
 
-        let specification = [kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder as String: true] as CFDictionary
+        // Low-latency rate control encodes each frame as it arrives, without holding frames
+        // back to even out the bit rate. Fall back to the normal mode where it is unsupported.
         var created: VTCompressionSession?
-        let status = VTCompressionSessionCreate(
-            allocator: kCFAllocatorDefault,
-            width: Int32(width), height: Int32(height),
-            codecType: codec == "hevc" ? kCMVideoCodecType_HEVC : kCMVideoCodecType_H264,
-            encoderSpecification: specification, imageBufferAttributes: nil,
-            compressedDataAllocator: nil, outputCallback: hardwareEncodeOutput,
-            refcon: Unmanaged.passUnretained(self).toOpaque(), compressionSessionOut: &created
-        )
+        var status: OSStatus = -1
+        for lowLatency in [true, false] {
+            var specification: [String: Any] = [
+                kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder as String: true
+            ]
+            if lowLatency { specification[kVTVideoEncoderSpecification_EnableLowLatencyRateControl as String] = true }
+            status = VTCompressionSessionCreate(
+                allocator: kCFAllocatorDefault,
+                width: Int32(width), height: Int32(height),
+                codecType: codec == "hevc" ? kCMVideoCodecType_HEVC : kCMVideoCodecType_H264,
+                encoderSpecification: specification as CFDictionary, imageBufferAttributes: nil,
+                compressedDataAllocator: nil, outputCallback: hardwareEncodeOutput,
+                refcon: Unmanaged.passUnretained(self).toOpaque(), compressionSessionOut: &created
+            )
+            if status == noErr, created != nil { break }
+        }
         guard status == noErr, let created else {
             throw HardwareVideoEncoderError.operation("encode.stage.create", status)
         }
@@ -60,6 +69,10 @@ final class HardwareVideoEncoder {
         try set(kVTCompressionPropertyKey_ExpectedFrameRate, frameRate as CFNumber)
         try set(kVTCompressionPropertyKey_AverageBitRate, bitRate as CFNumber)
         try set(kVTCompressionPropertyKey_MaxKeyFrameInterval, (frameRate * 2) as CFNumber)
+        // Optional speed-ups; not every encoder supports them.
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+                             value: kCFBooleanTrue)
+        VTSessionSetProperty(created, key: kVTCompressionPropertyKey_MaxFrameDelayCount, value: 0 as CFNumber)
         let prepared = VTCompressionSessionPrepareToEncodeFrames(created)
         guard prepared == noErr else { throw HardwareVideoEncoderError.operation("encode.stage.prepare", prepared) }
     }

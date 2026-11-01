@@ -9,18 +9,28 @@
 /* Begin PBXBuildFile section */
 		026BB2D77134BE1F9AF92F29 /* WiredPadPadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */; };
 		08426A8D257372F32017A7AE /* CoreTouchDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */; };
+		0DC93866C4BAA5993200D9FC /* NetworkHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5067D03DB151377A78DD0AA8 /* NetworkHint.swift */; };
 		0F74660371423B34C0349F01 /* HardwareVideoEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */; };
 		178782F1C919AB773CBA8BF0 /* VirtualDisplay.m in Sources */ = {isa = PBXBuildFile; fileRef = D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */; };
 		1B1CC25D4DD495066A3372A8 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 200A327252C0064A4DC3F7C3 /* InfoPlist.strings */; };
+		2FA8707A34B30641D6F958D8 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0DB2A3A85B2A3EB30D6D37 /* Session.swift */; };
 		3D4FAEB3DFC8DA24A268503F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C10BB578D0605B27CAB91CB /* Assets.xcassets */; };
+		4682160D09A529DA2D3A2DD2 /* NetworkHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5067D03DB151377A78DD0AA8 /* NetworkHint.swift */; };
 		47E56BA5941F1ADD9D7A00E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 34625D6758919E75F14C24FF /* Assets.xcassets */; };
+		68F3D1CE1FC715D131ABCA79 /* NetworkHintBeacon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE1D47B8644C3CEDDC5500E /* NetworkHintBeacon.swift */; };
 		771CF85BF1534E0D867C0346 /* HardwareVideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93046CE68272D884D79659CE /* HardwareVideoDecoder.swift */; };
+		7ED65DE7D61649AAC8DA9207 /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D952348C48E6C9067948CC3 /* Pairing.swift */; };
+		85183C9B8617A0673ADF5F58 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0DB2A3A85B2A3EB30D6D37 /* Session.swift */; };
 		8BBEA09210185CD202BE5AEB /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 666342EC924C2B0C7F6CA8FD /* Localizable.strings */; };
 		91E898EC8FE6D571D141F12B /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C1E5C0F47DA7786395197A /* L10n.swift */; };
 		92A109ED7239811B10863489 /* TouchDevice.m in Sources */ = {isa = PBXBuildFile; fileRef = B93B99DC147CC6C904281A40 /* TouchDevice.m */; };
+		9414ECA0CF0F6011A1000B86 /* USBLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 247DD07D98DCABC6A071868D /* USBLink.swift */; };
 		A0EF2309C62A1B124450FB45 /* DriverExtensionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */; };
+		B46420529BC42452C41C968D /* Pairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D952348C48E6C9067948CC3 /* Pairing.swift */; };
 		C2E87375E3367BF916DDBEA6 /* USBMux.m in Sources */ = {isa = PBXBuildFile; fileRef = 703076D74D01B7A15D0A73D5 /* USBMux.m */; };
 		C705F602E2570F2C424D2705 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813CFB1DB9278128966F728B /* Protocol.swift */; };
+		D1CEA7540E15A48B83B1F7B9 /* Wireless.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05348991209CE1D9AC4F34C9 /* Wireless.swift */; };
+		D2080684D75B0C7797D168FA /* NetworkHintWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D1773657F6B2104AC5EED0C /* NetworkHintWatcher.swift */; };
 		DACA6112D55946CCEC027B09 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 666342EC924C2B0C7F6CA8FD /* Localizable.strings */; };
 		DDBD17FD2E11362E4727B3E3 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813CFB1DB9278128966F728B /* Protocol.swift */; };
 		E192C6F6F005338E3E171E40 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C1E5C0F47DA7786395197A /* L10n.swift */; };
@@ -29,17 +39,23 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		05348991209CE1D9AC4F34C9 /* Wireless.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Wireless.swift; sourceTree = "<group>"; };
 		08D1BD698AF12058A1A59AB3 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		0D952348C48E6C9067948CC3 /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
 		0E36824FA6511015699A517D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		124ECA0ED15E8943669AC332 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1D170FBA7BF7B765EDDAF3B1 /* WiredPadPad.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WiredPadPad.entitlements; sourceTree = "<group>"; };
 		203FB9F88297C69C25787234 /* WiredPadMac-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WiredPadMac-Bridging-Header.h"; sourceTree = "<group>"; };
+		247DD07D98DCABC6A071868D /* USBLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USBLink.swift; sourceTree = "<group>"; };
 		34625D6758919E75F14C24FF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5067D03DB151377A78DD0AA8 /* NetworkHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHint.swift; sourceTree = "<group>"; };
 		554A87AC80D9F130BBA6CFFD /* WiredPadMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WiredPadMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTouchDevice.swift; sourceTree = "<group>"; };
 		6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareVideoEncoder.swift; sourceTree = "<group>"; };
 		6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiredPadPadApp.swift; sourceTree = "<group>"; };
+		6C0DB2A3A85B2A3EB30D6D37 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
 		6C10BB578D0605B27CAB91CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6D1773657F6B2104AC5EED0C /* NetworkHintWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHintWatcher.swift; sourceTree = "<group>"; };
 		703076D74D01B7A15D0A73D5 /* USBMux.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = USBMux.m; sourceTree = "<group>"; };
 		72C1E5C0F47DA7786395197A /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		7AED089F95CDE72ABB4B3964 /* WiredPadMac-HID.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "WiredPadMac-HID.entitlements"; sourceTree = "<group>"; };
@@ -52,6 +68,7 @@
 		B03C2F58573DE027D8BD3D4F /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
 		B93B99DC147CC6C904281A40 /* TouchDevice.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TouchDevice.m; sourceTree = "<group>"; };
 		C9124917300A43231C6B9183 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		CEE1D47B8644C3CEDDC5500E /* NetworkHintBeacon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHintBeacon.swift; sourceTree = "<group>"; };
 		D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriverExtensionController.swift; sourceTree = "<group>"; };
 		D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = VirtualDisplay.m; sourceTree = "<group>"; };
 		ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiredPadMacApp.swift; sourceTree = "<group>"; };
@@ -75,7 +92,9 @@
 				D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */,
 				6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */,
 				124ECA0ED15E8943669AC332 /* Info.plist */,
+				6D1773657F6B2104AC5EED0C /* NetworkHintWatcher.swift */,
 				B93B99DC147CC6C904281A40 /* TouchDevice.m */,
+				247DD07D98DCABC6A071868D /* USBLink.swift */,
 				703076D74D01B7A15D0A73D5 /* USBMux.m */,
 				D60D99A428F5A08FC4DF0A51 /* VirtualDisplay.m */,
 				203FB9F88297C69C25787234 /* WiredPadMac-Bridging-Header.h */,
@@ -83,6 +102,7 @@
 				7AED089F95CDE72ABB4B3964 /* WiredPadMac-HID.entitlements */,
 				A2DD24A226EEA80A16C39508 /* WiredPadMac.entitlements */,
 				ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */,
+				05348991209CE1D9AC4F34C9 /* Wireless.swift */,
 			);
 			path = Mac;
 			sourceTree = "<group>";
@@ -111,7 +131,10 @@
 			isa = PBXGroup;
 			children = (
 				72C1E5C0F47DA7786395197A /* L10n.swift */,
+				5067D03DB151377A78DD0AA8 /* NetworkHint.swift */,
+				0D952348C48E6C9067948CC3 /* Pairing.swift */,
 				813CFB1DB9278128966F728B /* Protocol.swift */,
+				6C0DB2A3A85B2A3EB30D6D37 /* Session.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -122,6 +145,7 @@
 				34625D6758919E75F14C24FF /* Assets.xcassets */,
 				93046CE68272D884D79659CE /* HardwareVideoDecoder.swift */,
 				0E36824FA6511015699A517D /* Info.plist */,
+				CEE1D47B8644C3CEDDC5500E /* NetworkHintBeacon.swift */,
 				1D170FBA7BF7B765EDDAF3B1 /* WiredPadPad.entitlements */,
 				6B2994BDE9FF9E31165D61B8 /* WiredPadPadApp.swift */,
 			);
@@ -231,11 +255,17 @@
 				A0EF2309C62A1B124450FB45 /* DriverExtensionController.swift in Sources */,
 				0F74660371423B34C0349F01 /* HardwareVideoEncoder.swift in Sources */,
 				E192C6F6F005338E3E171E40 /* L10n.swift in Sources */,
+				0DC93866C4BAA5993200D9FC /* NetworkHint.swift in Sources */,
+				D2080684D75B0C7797D168FA /* NetworkHintWatcher.swift in Sources */,
+				B46420529BC42452C41C968D /* Pairing.swift in Sources */,
 				C705F602E2570F2C424D2705 /* Protocol.swift in Sources */,
+				85183C9B8617A0673ADF5F58 /* Session.swift in Sources */,
 				92A109ED7239811B10863489 /* TouchDevice.m in Sources */,
+				9414ECA0CF0F6011A1000B86 /* USBLink.swift in Sources */,
 				C2E87375E3367BF916DDBEA6 /* USBMux.m in Sources */,
 				178782F1C919AB773CBA8BF0 /* VirtualDisplay.m in Sources */,
 				EA5A9BC9C4602C8C6CF22F0A /* WiredPadMacApp.swift in Sources */,
+				D1CEA7540E15A48B83B1F7B9 /* Wireless.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,7 +275,11 @@
 			files = (
 				771CF85BF1534E0D867C0346 /* HardwareVideoDecoder.swift in Sources */,
 				91E898EC8FE6D571D141F12B /* L10n.swift in Sources */,
+				4682160D09A529DA2D3A2DD2 /* NetworkHint.swift in Sources */,
+				68F3D1CE1FC715D131ABCA79 /* NetworkHintBeacon.swift in Sources */,
+				7ED65DE7D61649AAC8DA9207 /* Pairing.swift in Sources */,
 				DDBD17FD2E11362E4727B3E3 /* Protocol.swift in Sources */,
+				2FA8707A34B30641D6F958D8 /* Session.swift in Sources */,
 				026BB2D77134BE1F9AF92F29 /* WiredPadPadApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

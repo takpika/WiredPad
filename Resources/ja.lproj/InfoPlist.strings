@@ -1,2 +1,3 @@
 "NSScreenCaptureUsageDescription" = "仮想ディスプレイの映像をiPadへ表示するために画面収録を使用します。";
-"NSLocalNetworkUsageDescription" = "MacアプリからのUSB接続を受け付けます。";
+"NSLocalNetworkUsageDescription" = "WiredPadはMacとiPadをUSBとWi‑Fiで接続するためにローカルネットワークを使用します。";
+"NSBluetoothAlwaysUsageDescription" = "iPadがWi‑Fiネットワークにつながったり離れたりしたことをすばやく知るためにBluetoothを使用します。";
