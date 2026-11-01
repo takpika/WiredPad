@@ -92,7 +92,7 @@
 "mac.path.wiredLAN" = "有線LAN";
 "mac.path.peerToPeer" = "AWDL";
 "mac.path.wifiAware" = "Wi‑Fi Aware";
-"mac.path.wifiLAN" = "Wi‑Fi LAN";
+"mac.path.wifiLAN" = "Wi‑Fi";
 "mac.route.none" = "接続経路を探しています…";
 "mac.menu.nearby" = "近くのiPad";
 "mac.menu.pair" = "%@とペアリング…";

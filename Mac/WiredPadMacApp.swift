@@ -201,7 +201,7 @@ private struct SettingsView: View {
     }
 }
 
-final class MacSession: NSObject, ObservableObject, SCStreamOutput {
+final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDelegate {
     @Published var status = L10n.tr("mac.status.idle")
     @Published var running = false
     @Published private(set) var connecting = false
@@ -263,6 +263,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
     /// A path being tried next to the current Wi-Fi link, and since when it has been up.
     private var trial: (path: NetworkPath, started: TimeInterval?, onUSB: Bool)?
     private var nextTrial = 0.0
+    /// When the iPad last said over Bluetooth that it joined its Wi-Fi network.
+    private var joinedNetworkAt: TimeInterval?
     private var nextRescue = 0.0
     private var lastNoLinkLog = 0.0
     /// A path was switched to without a fair measurement; compare again soon.
@@ -279,6 +281,10 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
     private var retrying = false
     private var connectionGeneration = 0
     private var stream: SCStream?
+    private var captureFilter: SCContentFilter?
+    private var captureConfig: SCStreamConfiguration?
+    private var captureRestarting = false
+    private var wakeObservers: [NSObjectProtocol] = []
     private let captureQueue = DispatchQueue(label: "WiredPad.capture")
     private var lastRateCheck: TimeInterval = 0
     /// The rank of the link in use, for the rate control. Capture queue only.
@@ -351,6 +357,10 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
                               styleMask: [.titled, .closable, .resizable],
                               backing: .buffered, defer: false)
         window.title = L10n.tr("mac.probe.title")
+        // This object keeps the window; AppKit must not release it again when it closes.
+        window.isReleasedWhenClosed = false
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: window,
+                                               queue: .main) { [weak self] _ in self?.probeWindow = nil }
         let view = NSView(frame: window.contentLayoutRect)
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.darkGray.cgColor
@@ -461,7 +471,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
                         if self.trial?.started == nil, self.trial != nil {
                             self.trial = nil
                             let onAWDL = self.route.ranks.contains(NetworkPath.peerToPeer.rank)
-                            self.nextTrial = now + (onAWDL ? 15 : 120)
+                            self.nextTrial = now + (onAWDL ? (self.justJoinedNetwork(at: now) ? 2 : 15) : 120)
                         }
                     }
                     return
@@ -490,20 +500,24 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             if let target = wifiTarget, target != found { pathRetry[target] = now + 30 }
             // One Wi-Fi link at a time, except a second one on another path while trying it out.
             let networkRanks = route.ranks.filter { $0 > 0 }
+            // When the iPad joins its network it drops AWDL, which often comes back before
+            // Wi-Fi LAN does; Wi-Fi LAN arriving then is tried at once rather than turned away.
+            let joining = found == .wifiLAN && trial == nil && justJoinedNetwork(at: now)
+                && networkRanks == [NetworkPath.peerToPeer.rank]
             if session != nil, !networkRanks.isEmpty {
-                guard trial != nil, trial?.started == nil, !networkRanks.contains(found.rank) else {
+                guard joining || (trial != nil && trial?.started == nil), !networkRanks.contains(found.rank) else {
                     link.close()
                     if trial?.started == nil { trial = nil }
                     return
                 }
-                trial = (found, now, trial?.onUSB ?? true)
+                trial = (found, now, trial?.onUSB ?? (route.primaryRank == 0))
             } else if trial?.path == found, trial?.started == nil {
                 // The path being tried became the only one: nothing left to compare.
                 trial = nil
             }
             path = found
             // AWDL slows the network, so check sooner whether Wi-Fi LAN is back.
-            if found == .peerToPeer, trial == nil { nextTrial = now + 15 }
+            if found == .peerToPeer, trial == nil { nextTrial = now + (justJoinedNetwork(at: now) ? 0 : 15) }
             linkLog.info("Wi-Fi link runs over \(String(describing: found), privacy: .public)")
         }
         let rank = path?.rank ?? 0
@@ -573,9 +587,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
     /// Wi-Fi whenever this iPad is paired and reachable.
     private func startLinkMonitor() {
         linkMonitor?.invalidate()
-        linkMonitor = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkLinks()
         }
+        // Common modes, so it keeps running while the menu bar menu is open.
+        RunLoop.main.add(timer, forMode: .common)
+        linkMonitor = timer
     }
 
     private func checkLinks() {
@@ -610,7 +627,19 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
         if let current = trial {
             if let started = current.started {
                 // A trial run on USB ends early if USB goes away, so the link in use is kept.
-                if now - started >= 10 || (current.onUSB && !onUSB) { finishTrial(session: session, at: now) }
+                // A network path next to AWDL cannot be measured fairly, so it is moved to as
+                // soon as it answers steadily; there is nothing more to learn by waiting.
+                let unfair = current.path != .peerToPeer && route.ranks.contains(NetworkPath.peerToPeer.rank)
+                    && Self.cleanScore(pathScores[current.path], at: now) == nil
+                    && score(rank: current.path.rank, since: started + 2) != nil
+                if now - started >= 2, !route.ranks.contains(current.path.rank) {
+                    // The path being tried went away, as Wi-Fi LAN may just after the iPad joins
+                    // its network: try it again soon rather than judge it.
+                    trial = nil
+                    nextTrial = now + (justJoinedNetwork(at: now) ? 2 : 15)
+                } else if now - started >= 10 || unfair || (current.onUSB && !onUSB) {
+                    finishTrial(session: session, at: now)
+                }
             } else if !wifiAttempting {
                 attempt = current.path
             }
@@ -746,6 +775,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             // Its Wi-Fi LAN link cannot carry on; close it now so another path takes over.
             if route.ranks.contains(lan.rank) { sessionQueue.async { session.drop(rank: lan.rank) } }
         } else {
+            joinedNetworkAt = ProcessInfo.processInfo.systemUptime
             pathRetry[lan] = nil
             nextWiFiAttempt = 0
             // On AWDL: try Wi-Fi LAN right away, and measure it afresh.
@@ -755,6 +785,10 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             }
         }
         checkLinks()
+    }
+
+    private func justJoinedNetwork(at now: TimeInterval) -> Bool {
+        !iPadOffNetwork && joinedNetworkAt.map { now - $0 < 30 } == true
     }
 
     /// The available path with the best measurement; unmeasured paths in their default order.
@@ -814,6 +848,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             kept = tried != nil ? current.path : other
         }
         let dropped = kept == other ? current.path : other
+        // AWDL slows the network, so a network path is tried again sooner from it.
+        if kept == .peerToPeer { nextTrial = now + 120 } else { joinedNetworkAt = nil }
         linkLog.info("path trial: \(String(describing: current.path), privacy: .public) \(tried ?? measured ?? -1, format: .fixed(precision: 0)) ms, \(String(describing: other), privacy: .public) \(self.pathScores[other]?.ms ?? -1, format: .fixed(precision: 0)) ms; keeping \(String(describing: kept), privacy: .public)")
         sessionQueue.async { session.drop(rank: dropped.rank) }
     }
@@ -1049,10 +1085,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(selectedEncoder.frameRate))
             config.queueDepth = 3
             config.showsCursor = true
-            let stream = SCStream(filter: filter, configuration: config, delegate: nil)
-            try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: captureQueue)
+            captureFilter = filter
+            captureConfig = config
+            let stream = try makeStream(filter: filter, configuration: config)
             self.stream = stream
             try await stream.startCapture()
+            watchForWake()
             guard connectionGeneration == generation, !manuallyStopped else {
                 try? await stream.stopCapture()
                 return
@@ -1080,6 +1118,65 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
         }
     }
 
+    private func makeStream(filter: SCContentFilter, configuration: SCStreamConfiguration) throws -> SCStream {
+        let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
+        try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: captureQueue)
+        return stream
+    }
+
+    /// ScreenCaptureKit ends the stream on its own when the displays turn off, as they do
+    /// while the Mac is locked, and does not start it again. The links stay up meanwhile, so
+    /// capture starts again once the displays are back.
+    private func watchForWake() {
+        guard wakeObservers.isEmpty else { return }
+        let restart: (Notification) -> Void = { [weak self] _ in
+            Task { @MainActor in self?.restartCapture() }
+        }
+        wakeObservers = [
+            NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.screensDidWakeNotification,
+                                                              object: nil, queue: .main, using: restart),
+            DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsUnlocked"),
+                                                                object: nil, queue: .main, using: restart),
+        ]
+    }
+
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        linkLog.info("screen capture stopped: \(error.localizedDescription, privacy: .public)")
+        Task { @MainActor [weak self] in
+            guard let self, self.stream === stream else { return }
+            // While the displays are off a new stream would stop at once; their wake restarts it.
+            if CGDisplayIsAsleep(CGMainDisplayID()) == 0 { self.restartCapture() }
+        }
+    }
+
+    @MainActor private func restartCapture(attempt: Int = 0) {
+        guard running, !captureRestarting, let filter = captureFilter, let config = captureConfig else { return }
+        captureRestarting = true
+        let generation = connectionGeneration
+        let previous = stream
+        Task { @MainActor in
+            try? await previous?.stopCapture()
+            var failure: Error?
+            do {
+                let restarted = try makeStream(filter: filter, configuration: config)
+                try await restarted.startCapture()
+                if connectionGeneration == generation, running {
+                    stream = restarted
+                    linkLog.info("screen capture restarted")
+                } else {
+                    try? await restarted.stopCapture()
+                }
+            } catch {
+                failure = error
+            }
+            captureRestarting = false
+            guard let failure, connectionGeneration == generation, attempt < 5 else { return }
+            linkLog.error("screen capture restart failed: \(failure.localizedDescription, privacy: .public)")
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            restartCapture(attempt: attempt + 1)
+        }
+    }
+
     private func disconnect() {
         if let session {
             sessionQueue.async { session.invalidate() }
@@ -1095,6 +1192,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
         route = WireSession.LinkStatus()
         pathRetry = [:]
         iPadOffNetwork = false
+        joinedNetworkAt = nil
         hintedEndpoint = nil
         trial = nil
         peerToPeerRequested = false
@@ -1106,6 +1204,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput {
             Task { try? await stream.stopCapture() }
             self.stream = nil
         }
+        captureFilter = nil
+        captureConfig = nil
         encoder = nil
         videoTimer?.cancel()
         videoTimer = nil

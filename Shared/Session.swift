@@ -254,6 +254,8 @@ final class WireSession {
     static let pingInterval: TimeInterval = 0.1
     /// A link that answers slower than this is not used while a responsive one is there.
     static let responsiveDelay: TimeInterval = 0.08
+    /// How long a wireless primary may go without answering before another link takes over.
+    static let stallDelay: TimeInterval = 0.4
     /// The standby link stops getting copies while this much is waiting to go out on it, so
     /// it never builds up a queue of its own.
     static let standbyBacklog = 64 * 1024
@@ -448,12 +450,19 @@ final class WireSession {
         }
         let responsive = links.filter { $0.goodSince != nil }.sorted { $0.rank < $1.rank }
         let current = links.first { $0.link === primary }
+        let wired = NetworkPath.wiredLAN.rank
+        // Two wireless links share the radio, and short stalls on one come with stalls on the
+        // other, so a wireless primary is left only once it stops answering altogether.
+        // Switching on every stall moves back and forth and resends data each time.
+        let holds = current.map { $0.goodSince != nil || ($0.rank > wired && now - $0.lastPong < Self.stallDelay) }
         let best: Attached?
-        if let current, current.goodSince != nil {
+        if let current, holds == true {
             // Move to a better-ranked link once it has stayed responsive for a moment; USB
-            // takes over almost at once.
+            // takes over almost at once. Between wireless paths no rank is better: which one
+            // to keep is decided by measuring them.
             best = responsive.first { candidate in
-                guard candidate.rank < current.rank, let since = candidate.goodSince else { return false }
+                guard candidate.rank < current.rank, candidate.rank <= wired || current.rank <= wired,
+                      let since = candidate.goodSince else { return false }
                 return now - since >= (candidate.link.kind == .usb ? 0.2 : 2)
             } ?? current
         } else {

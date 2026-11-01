@@ -92,7 +92,7 @@
 "mac.path.wiredLAN" = "Wired LAN";
 "mac.path.peerToPeer" = "AWDL";
 "mac.path.wifiAware" = "Wi‑Fi Aware";
-"mac.path.wifiLAN" = "Wi‑Fi LAN";
+"mac.path.wifiLAN" = "Wi‑Fi";
 "mac.route.none" = "Looking for a connection…";
 "mac.menu.nearby" = "Nearby iPads";
 "mac.menu.pair" = "Pair with %@…";
