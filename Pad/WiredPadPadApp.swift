@@ -865,6 +865,7 @@ private final class TouchCanvas: UIView {
     var onResize: ((CGSize) -> Void)?
     private var fingers: [ObjectIdentifier: (Int, CGPoint)] = [:]
     private var penHovering = false
+    private var penTouching = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -929,6 +930,7 @@ private final class TouchCanvas: UIView {
     /// Sends the Pencil's samples since the last event, so fast strokes keep their shape.
     private func pen(_ touches: Set<UITouch>, with event: UIEvent?, ended: Bool) {
         guard let touch = touches.first(where: { $0.type == .pencil }) else { return }
+        penTouching = !ended
         let moves = ended ? [touch] : (event?.coalescedTouches(for: touch) ?? [touch])
         let samples = moves.map { move in
             penSample(at: move.preciseLocation(in: self),
@@ -942,6 +944,8 @@ private final class TouchCanvas: UIView {
     /// A Pencil above the screen, on iPads that sense it; a pointer hovers at no height.
     @objc private func hovered(_ recognizer: UIHoverGestureRecognizer) {
         guard #available(iOS 16.4, *) else { return }
+        // Touching ends the hover; the touch itself carries the Pencil until it lifts.
+        guard !penTouching else { penHovering = false; return }
         let inRange = (recognizer.state == .began || recognizer.state == .changed) && recognizer.zOffset > 0
         guard inRange || penHovering else { return }
         penHovering = inRange
