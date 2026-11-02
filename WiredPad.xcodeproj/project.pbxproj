@@ -35,6 +35,7 @@
 		DDBD17FD2E11362E4727B3E3 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 813CFB1DB9278128966F728B /* Protocol.swift */; };
 		E192C6F6F005338E3E171E40 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C1E5C0F47DA7786395197A /* L10n.swift */; };
 		EA5A9BC9C4602C8C6CF22F0A /* WiredPadMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0ECDAB5E64E1DB30E58023 /* WiredPadMacApp.swift */; };
+		F1C65B15E76D6B2CA1F50332 /* CoreBrightnessDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A50D9055696E897A473C47C /* CoreBrightnessDevice.swift */; };
 		F29CF651D219E74FABF72109 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 200A327252C0064A4DC3F7C3 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +45,7 @@
 		0D952348C48E6C9067948CC3 /* Pairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing.swift; sourceTree = "<group>"; };
 		0E36824FA6511015699A517D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		124ECA0ED15E8943669AC332 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1A50D9055696E897A473C47C /* CoreBrightnessDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreBrightnessDevice.swift; sourceTree = "<group>"; };
 		1D170FBA7BF7B765EDDAF3B1 /* WiredPadPad.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WiredPadPad.entitlements; sourceTree = "<group>"; };
 		203FB9F88297C69C25787234 /* WiredPadMac-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WiredPadMac-Bridging-Header.h"; sourceTree = "<group>"; };
 		247DD07D98DCABC6A071868D /* USBLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USBLink.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				6C10BB578D0605B27CAB91CB /* Assets.xcassets */,
+				1A50D9055696E897A473C47C /* CoreBrightnessDevice.swift */,
 				5B68366C49B48ADD7DAB7EAB /* CoreTouchDevice.swift */,
 				D019FD5565AB6409C3320C20 /* DriverExtensionController.swift */,
 				6289D02E791A5967329EB6DA /* HardwareVideoEncoder.swift */,
@@ -251,6 +254,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1C65B15E76D6B2CA1F50332 /* CoreBrightnessDevice.swift in Sources */,
 				08426A8D257372F32017A7AE /* CoreTouchDevice.swift in Sources */,
 				A0EF2309C62A1B124450FB45 /* DriverExtensionController.swift in Sources */,
 				0F74660371423B34C0349F01 /* HardwareVideoEncoder.swift in Sources */,

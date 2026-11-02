@@ -6,6 +6,8 @@ BOOL WiredPadResizeDisplay(uint32_t width, uint32_t height, uint32_t logicalWidt
 void WiredPadDestroyDisplay(void);
 const char *WiredPadDisplayError(void);
 const char *WiredPadCopyDisplayUUID(uint32_t displayID);
+int WiredPadNativeBrightnessCapability(uint32_t displayID);
+int WiredPadReplugDisplay(uint32_t displayID);
 int WiredPadConnectUSB(uint16_t port);
 const char *WiredPadUSBError(void);
 NSData *WiredPadTouchReportDescriptor(void);

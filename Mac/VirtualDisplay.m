@@ -21,6 +21,29 @@ static id heldDisplay;
 static NSString *displayError;
 static NSString *lastDisplayUUID;
 
+static CGError setDisplayEnabled(uint32_t displayID, bool enabled) {
+    typedef CGError (*ConfigureEnabled)(CGDisplayConfigRef, CGDirectDisplayID, bool);
+    ConfigureEnabled configureEnabled = (ConfigureEnabled)dlsym(RTLD_DEFAULT, "CGSConfigureDisplayEnabled");
+    if (!configureEnabled) return kCGErrorNotImplemented;
+    CGDisplayConfigRef config = NULL;
+    CGError result = CGBeginDisplayConfiguration(&config);
+    if (result != kCGErrorSuccess) return result;
+    result = configureEnabled(config, displayID, enabled);
+    if (result != kCGErrorSuccess) {
+        CGCancelDisplayConfiguration(config);
+        return result;
+    }
+    return CGCompleteDisplayConfiguration(config, kCGConfigureForSession);
+}
+
+/// corebrightnessd enrolls displays only as they are hot-plugged, and a new virtual display
+/// is not; turning it off and on again goes through WindowServer's hotplug path, so the
+/// display gets its brightness control (see CoreBrightnessDevice) without a restart.
+int WiredPadReplugDisplay(uint32_t displayID) {
+    CGError result = setDisplayEnabled(displayID, false);
+    return result == kCGErrorSuccess ? setDisplayEnabled(displayID, true) : result;
+}
+
 static id displaySettings(Class settingsClass, Class modeClass, uint32_t width, uint32_t height,
                           uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate) {
     CGVirtualDisplayMode *mode = [(CGVirtualDisplayMode *)[modeClass alloc] initWithWidth:width height:height refreshRate:refreshRate];
@@ -46,6 +69,9 @@ BOOL WiredPadResizeDisplay(uint32_t width, uint32_t height, uint32_t logicalWidt
 }
 
 void WiredPadDestroyDisplay(void) {
+    // Destroying a virtual display is no unplug to corebrightnessd, which would keep its
+    // brightness control around; turning it off first removes that.
+    if (heldDisplay) setDisplayEnabled((uint32_t)[[heldDisplay valueForKey:@"displayID"] unsignedIntValue], false);
     heldDisplay = nil;
     lastDisplayUUID = nil;
 }
@@ -74,6 +100,13 @@ const char *WiredPadCopyDisplayUUID(uint32_t displayID) {
     return lastDisplayUUID.UTF8String;
 }
 
+int WiredPadNativeBrightnessCapability(uint32_t displayID) {
+    void *library = dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_LAZY);
+    if (!library) return -1;
+    bool (*canChange)(uint32_t) = (bool (*)(uint32_t))dlsym(library, "DisplayServicesCanChangeBrightness");
+    return canChange ? (canChange(displayID) ? 1 : 0) : -1;
+}
+
 const char *WiredPadDisplayError(void) {
     return displayError.UTF8String ?: "Unknown virtual display error";
 }
@@ -97,8 +130,12 @@ uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logical
         uint32_t longSide = MAX(width, height);
         [descriptor setValue:@(longSide) forKey:@"maxPixelsWide"];
         [descriptor setValue:@(longSide) forKey:@"maxPixelsHigh"];
-        [descriptor setValue:@(0x5750) forKey:@"vendorID"];
-        [descriptor setValue:@((width ^ (height << 1)) & 0xffff) forKey:@"productID"];
+        // corebrightnessd gives Apple's legacy display IDs a HID brightness control, which
+        // CoreBrightnessDevice provides; other IDs get a display with no brightness at all.
+        // Of those IDs, macOS's override file for the Thunderbolt Display sets only a name,
+        // while the LED Cinema Display ones also replace the primaries and gamma.
+        [descriptor setValue:@(0x0610) forKey:@"vendorID"];
+        [descriptor setValue:@(0x9227) forKey:@"productID"];
         // Serial 1 was turned with a private WindowServer call in a test build, and macOS
         // remembers that per display; a new serial starts unturned.
         [descriptor setValue:@(0x0002) forKey:@"serialNum"];

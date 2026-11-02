@@ -17,6 +17,10 @@
 "mac.diagnostics.selftest" = "HID自己診断: %@";
 "mac.diagnostics.probe" = "タッチ診断画面を開く";
 "mac.diagnostics.hidtest" = "10点テストを送信";
+"mac.diagnostics.brightnessprobe" = "標準の明るさ対応を確認";
+"mac.brightness.notrun" = "標準の明るさ: 未確認";
+"mac.brightness.result" = "標準の明るさ対応: %d（-1 利用不可、0 非対応、1 対応）";
+"mac.brightness.deviceerror" = "明るさ用HIDを作成できませんでした";
 "mac.diagnostics.notrun" = "未実行";
 "mac.diagnostics.success" = "10点を送信しました";
 "mac.diagnostics.failure" = "送信に失敗しました";

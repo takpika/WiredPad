@@ -203,6 +203,7 @@ final class PadSession: ObservableObject {
     private var volumeSessionActive = false
     private var volumeBaseline: Float = 0.5
     private var volumeReady = false
+    private var brightnessObservation: NSObjectProtocol?
     private var needsFreshConnection = false
 
     struct PairingPrompt: Equatable {
@@ -537,6 +538,10 @@ final class PadSession: ObservableObject {
                                  maximumFramesPerSecond: UIScreen.main.maximumFramesPerSecond,
                                  pixelsPerInch: Self.screenPixelsPerInch())
         if let payload = try? JSONEncoder().encode(hello) { session.send(.hello, payload) }
+        brightnessObservation = NotificationCenter.default.addObserver(
+            forName: UIScreen.brightnessDidChangeNotification, object: UIScreen.main, queue: .main
+        ) { [weak self] _ in self?.sendBrightnessState() }
+        sendBrightnessState()
         // The Mac starts at the full screen; the canvas tells it the actual area.
         sentSize = nil
         if let canvas { canvasResized(canvas.bounds.size) }
@@ -569,6 +574,8 @@ final class PadSession: ObservableObject {
         sessionMacName = nil
         route = WireSession.LinkStatus()
         telemetryTimer?.invalidate()
+        if let brightnessObservation { NotificationCenter.default.removeObserver(brightnessObservation) }
+        brightnessObservation = nil
         captureStopped = false
         if connected {
             connected = false
@@ -712,6 +719,12 @@ final class PadSession: ObservableObject {
         session.send(.volumeStep, data)
     }
 
+    private func sendBrightnessState() {
+        guard let session, connected,
+              let data = try? JSONEncoder().encode(BrightnessLevel(value: Double(UIScreen.main.brightness))) else { return }
+        session.send(.brightnessState, data)
+    }
+
     /// Runs on the session queue.
     private func handleMessage(_ type: UInt8, _ data: Data, in session: WireSession) {
         if type == WireType.videoFormat.rawValue,
@@ -737,6 +750,14 @@ final class PadSession: ObservableObject {
         } else if type == WireType.diagnostics.rawValue,
                   let control = try? JSONDecoder().decode(DiagnosticsControl.self, from: data) {
             DispatchQueue.main.async { self.showDiagnostics = control.visible }
+        } else if type == WireType.brightnessSet.rawValue,
+                  let request = try? JSONDecoder().decode(BrightnessLevel.self, from: data),
+                  request.value.isFinite, (0...1).contains(request.value) {
+            DispatchQueue.main.async {
+                guard self.session === session, self.connected else { return }
+                UIScreen.main.brightness = CGFloat(request.value)
+                self.sendBrightnessState()
+            }
         } else if type == WireType.capture.rawValue, let flag = data.first {
             DispatchQueue.main.async { self.captureStopped = flag == 0 }
         } else if type == WireType.peerToPeer.rawValue, let flag = data.first {

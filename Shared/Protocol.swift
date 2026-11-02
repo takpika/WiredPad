@@ -19,6 +19,10 @@ enum WireType: UInt8 {
     /// Mac to iPad, one byte: 0 when screen capture stops, as it does while the Mac is
     /// locked, and 1 when it runs again.
     case capture = 13
+    /// Mac to iPad: a normalized physical-screen brightness request.
+    case brightnessSet = 14
+    /// iPad to Mac: the current physical-screen brightness.
+    case brightnessState = 15
 
     // Link layer: every connection starts with a hello/welcome exchange, then carries
     // numbered session data so a session can move between USB and Wi-Fi without loss.
@@ -155,6 +159,10 @@ struct DiagnosticsControl: Codable {
 
 struct VolumeStep: Codable {
     let direction: Int
+}
+
+struct BrightnessLevel: Codable {
+    let value: Double
 }
 
 enum Wire {

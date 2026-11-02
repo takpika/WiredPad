@@ -30,6 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         model.startAutomatically()
     }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        WiredPadDestroyDisplay()
+    }
 }
 
 private struct StatusIcon: View {
@@ -134,6 +138,7 @@ private struct SettingsView: View {
                 }
             }
 
+
             Section {
                 if model.pairedPads.isEmpty {
                     Text("mac.pair.none")
@@ -159,6 +164,7 @@ private struct SettingsView: View {
                     if !model.linkDiagnostics.isEmpty { Text(model.linkDiagnostics) }
                     if model.displayID != 0 {
                         Text(L10n.tr("mac.display.id", model.displayID))
+                        Text(model.brightnessDiagnostic)
                     }
                 }
                 .font(.callout.monospacedDigit())
@@ -172,6 +178,7 @@ private struct SettingsView: View {
                     HStack {
                         Button("mac.diagnostics.probe") { model.openTouchProbe() }
                         Button("mac.diagnostics.hidtest") { model.sendTestTouches() }
+                        Button("mac.diagnostics.brightnessprobe") { model.probeBrightness() }
                         Button("mac.diagnostics.handover") { model.testHandover() }
                             .disabled(!(model.route.usb && model.route.wifi))
                     }
@@ -213,6 +220,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     @Published var selfTestStatus = L10n.tr("mac.diagnostics.notrun")
     @Published var hidError: String?
     @Published var volumeError: String?
+    @Published var brightnessDiagnostic = L10n.tr("mac.brightness.notrun")
     @Published var macTelemetry = L10n.tr("mac.telemetry.waiting")
     @Published var ipadTelemetry = L10n.tr("ipad.telemetry.waiting")
     @Published var showDiagnostics = false
@@ -308,6 +316,16 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     private var healthySeconds = 0
     private var touchDevice: CoreTouchDevice?
     private var volumeDevice: CoreVolumeDevice?
+    private var brightnessDevice: CoreBrightnessDevice?
+    private var lastIPadBrightness: Double?
+
+    func probeBrightness() {
+        guard displayID != 0 else { return }
+        let capability = WiredPadNativeBrightnessCapability(displayID)
+        brightnessDiagnostic = L10n.tr("mac.brightness.result", capability)
+        NSLog("WiredPad display %u native brightness capability=%d", displayID, capability)
+    }
+
     private var probeWindow: NSWindow?
 
     func toggleDiagnostics() {
@@ -1004,6 +1022,15 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                     }
                 }
             }
+        case WireType.brightnessState.rawValue:
+            guard let state = try? JSONDecoder().decode(BrightnessLevel.self, from: payload),
+                  state.value.isFinite, (0...1).contains(state.value) else { return }
+            DispatchQueue.main.async {
+                guard self.connectionGeneration == generation else { return }
+                self.lastIPadBrightness = state.value
+                guard let device = self.brightnessDevice else { return }
+                Task { await device.reportFromIPad(state.value) }
+            }
         case WireType.telemetry.rawValue:
             guard let report = try? JSONDecoder().decode(VideoTelemetry.self, from: payload) else { return }
             updateForIPad(report)
@@ -1048,6 +1075,31 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 status = L10n.tr("mac.error.mode")
                 disconnect()
                 return
+            }
+            brightnessDevice = CoreBrightnessDevice(displayID: id) { [weak self] value in
+                DispatchQueue.main.async {
+                    guard let self, let session = self.session,
+                          let data = try? JSONEncoder().encode(BrightnessLevel(value: value)) else { return }
+                    session.send(.brightnessSet, data)
+                }
+            }
+            if let brightnessDevice {
+                if let lastIPadBrightness { brightnessDevice.updateFromIPad(lastIPadBrightness) }
+                await brightnessDevice.activate()
+                // macOS only gives a display brightness control as it is plugged in, which a
+                // new virtual display never is; a replug before capture starts does that.
+                if WiredPadNativeBrightnessCapability(id) == 0 {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    let result = WiredPadReplugDisplay(id)
+                    linkLog.info("replugged display \(id) for brightness, result \(result)")
+                }
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    guard let self, self.connectionGeneration == generation, self.displayID == id else { return }
+                    self.probeBrightness()
+                }
+            } else {
+                brightnessDiagnostic = L10n.tr("mac.brightness.deviceerror")
             }
             var capturedDisplay: SCDisplay?
             for _ in 0..<10 {
@@ -1331,6 +1383,9 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         connecting = false
         running = false
         displaySummary = nil
+        touchDevice = nil
+        volumeDevice = nil
+        brightnessDevice = nil
         scheduleReconnect()
     }
 
@@ -1352,6 +1407,9 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         disconnect()
         touchDevice = nil
         volumeDevice = nil
+        brightnessDevice = nil
+        lastIPadBrightness = nil
+        brightnessDiagnostic = L10n.tr("mac.brightness.notrun")
         probeWindow?.close()
         probeWindow = nil
         WiredPadDestroyDisplay()

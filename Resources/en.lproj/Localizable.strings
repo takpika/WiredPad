@@ -17,6 +17,10 @@
 "mac.diagnostics.selftest" = "HID self-test: %@";
 "mac.diagnostics.probe" = "Open touch test window";
 "mac.diagnostics.hidtest" = "Send ten-point test";
+"mac.diagnostics.brightnessprobe" = "Check native brightness";
+"mac.brightness.notrun" = "Native brightness: not checked";
+"mac.brightness.result" = "Native brightness capability: %d (-1 unavailable, 0 no, 1 yes)";
+"mac.brightness.deviceerror" = "Brightness HID device could not be created";
 "mac.diagnostics.notrun" = "Not run";
 "mac.diagnostics.success" = "Ten contacts sent";
 "mac.diagnostics.failure" = "Failed to send";
