@@ -8,6 +8,8 @@ final class DriverExtensionController: NSObject, ObservableObject, OSSystemExten
     }
 
     @Published private(set) var status = L10n.tr("driver.status.inactive")
+    /// Runs once a new driver is active, for touch devices made before it to be made again.
+    var onActivated: (() -> Void)?
 
     var isBundled: Bool {
         let url = Bundle.main.bundleURL
@@ -38,6 +40,7 @@ final class DriverExtensionController: NSObject, ObservableObject, OSSystemExten
         switch result {
         case .completed:
             status = L10n.tr("driver.status.active")
+            onActivated?()
         case .willCompleteAfterReboot:
             status = L10n.tr("driver.status.reboot")
         @unknown default:

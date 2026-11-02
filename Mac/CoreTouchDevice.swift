@@ -1,7 +1,28 @@
+import CoreGraphics
 import CoreHID
 import Foundation
 
-final class CoreTouchDevice: HIDVirtualDeviceDelegate {
+/// A virtual HID device keeps its delegate for as long as it lives, and the device stays in
+/// the system until it is freed. Handing it this instead of the owner breaks that cycle, so a
+/// device dropped by its owner leaves the system.
+final class WeakHIDDelegate: HIDVirtualDeviceDelegate, @unchecked Sendable {
+    private weak var target: (AnyObject & HIDVirtualDeviceDelegate)?
+
+    init(_ target: AnyObject & HIDVirtualDeviceDelegate) { self.target = target }
+
+    func hidVirtualDevice(_ device: HIDVirtualDevice, receivedSetReportRequestOfType type: HIDReportType,
+                          id: HIDReportID?, data: Data) async throws {
+        try await target?.hidVirtualDevice(device, receivedSetReportRequestOfType: type, id: id, data: data)
+    }
+
+    func hidVirtualDevice(_ device: HIDVirtualDevice, receivedGetReportRequestOfType type: HIDReportType,
+                          id: HIDReportID?, maxSize: Int) async throws -> Data {
+        try await target?.hidVirtualDevice(device, receivedGetReportRequestOfType: type, id: id,
+                                           maxSize: maxSize) ?? Data()
+    }
+}
+
+final class CoreTouchDevice: HIDVirtualDeviceDelegate, @unchecked Sendable {
     private let device: HIDVirtualDevice
 
     init?(displayID: UInt32) {
@@ -21,7 +42,7 @@ final class CoreTouchDevice: HIDVirtualDeviceDelegate {
     }
 
     func activate() async {
-        await device.activate(delegate: self)
+        await device.activate(delegate: WeakHIDDelegate(self))
     }
 
     func send(_ points: [TouchPoint]) async throws {
@@ -52,7 +73,58 @@ final class CoreTouchDevice: HIDVirtualDeviceDelegate {
     }
 }
 
-final class CoreVolumeDevice: HIDVirtualDeviceDelegate {
+/// The Pencil, on a device of its own. The touch driver matches it too and hands WindowServer
+/// tablet events with the Pencil's pressure and tilt.
+final class CorePenDevice: HIDVirtualDeviceDelegate, @unchecked Sendable {
+    private let device: HIDVirtualDevice
+
+    init?() {
+        let properties = HIDVirtualDevice.Properties(
+            descriptor: WiredPadPenReportDescriptor() as Data,
+            vendorID: 0x5750,
+            productID: 3,
+            product: "WiredPad Pencil",
+            manufacturer: "WiredPad"
+        )
+        guard let device = HIDVirtualDevice(properties: properties) else { return nil }
+        self.device = device
+    }
+
+    func activate() async {
+        await device.activate(delegate: WeakHIDDelegate(self))
+    }
+
+    /// Report 2: the Pencil's position, pressure, and tilt. `screen` is the display's rectangle
+    /// on the global display space, where the driver places the Pencil.
+    func send(_ sample: PenSample, on screen: CGRect) async throws {
+        func fixed(_ value: Double) -> [UInt8] {
+            let raw = Int32(value * 65536)
+            return (0..<4).map { UInt8(truncatingIfNeeded: raw >> ($0 * 8)) }
+        }
+        // Altitude and azimuth as tilt toward x and y, the way digitizers report it.
+        let altitude = max(1, min(90, sample.altitude)) * .pi / 180
+        let azimuth = sample.azimuth * .pi / 180
+        func tilt(_ component: Double) -> UInt8 {
+            UInt8(bitPattern: Int8(max(-90, min(90, (atan(component / tan(altitude)) * 180 / .pi).rounded()))))
+        }
+        let x = screen.minX + min(1, max(0, sample.x)) * screen.width
+        let y = screen.minY + min(1, max(0, sample.y)) * screen.height
+        let pressure = UInt16((min(1, max(0, sample.touching ? sample.pressure : 0)) * 32767).rounded())
+        let flags: UInt8 = (sample.touching ? 1 : 0) | (sample.inRange ? 1 << 4 : 0)
+        let report: [UInt8] = [2, flags] + fixed(x) + fixed(y) +
+            [UInt8(truncatingIfNeeded: pressure), UInt8(truncatingIfNeeded: pressure >> 8),
+             tilt(cos(azimuth)), tilt(sin(azimuth)), 0, 0]
+        try await device.dispatchInputReport(data: Data(report), timestamp: SuspendingClock().now)
+    }
+
+    func hidVirtualDevice(_ device: HIDVirtualDevice, receivedSetReportRequestOfType type: HIDReportType, id: HIDReportID?, data: Data) async throws {}
+
+    func hidVirtualDevice(_ device: HIDVirtualDevice, receivedGetReportRequestOfType type: HIDReportType, id: HIDReportID?, maxSize: Int) async throws -> Data {
+        Data()
+    }
+}
+
+final class CoreVolumeDevice: HIDVirtualDeviceDelegate, @unchecked Sendable {
     private let device: HIDVirtualDevice
 
     init?() {
@@ -80,7 +152,7 @@ final class CoreVolumeDevice: HIDVirtualDeviceDelegate {
     }
 
     func activate() async {
-        await device.activate(delegate: self)
+        await device.activate(delegate: WeakHIDDelegate(self))
     }
 
     func send(_ direction: Int) async throws {

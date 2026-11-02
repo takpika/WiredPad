@@ -5,8 +5,8 @@
   <key>CFBundleExecutable</key><string>WiredPadTouchDriver</string>
   <key>CFBundleName</key><string>WiredPadTouchDriver</string>
   <key>CFBundlePackageType</key><string>DEXT</string>
-  <key>CFBundleVersion</key><string>18</string>
-  <key>CFBundleShortVersionString</key><string>1.8</string>
+  <key>CFBundleVersion</key><string>29</string>
+  <key>CFBundleShortVersionString</key><string>1.19</string>
   <key>IOKitPersonalities</key><dict>
     <key>WiredPad 10-point Touchscreen</key><dict>
       <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
@@ -20,6 +20,18 @@
       <key>PrimaryUsage</key><integer>4</integer>
       <key>IOProbeScore</key><integer>2000</integer>
     </dict>
+    <key>WiredPad Pencil</key><dict>
+      <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+      <key>IOClass</key><string>AppleUserHIDEventService</string>
+      <key>IOProviderClass</key><string>IOHIDInterface</string>
+      <key>IOUserClass</key><string>WiredPadTouchDriver</string>
+      <key>IOUserServerName</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+      <key>VendorID</key><integer>22352</integer>
+      <key>ProductID</key><integer>3</integer>
+      <key>PrimaryUsagePage</key><integer>13</integer>
+      <key>PrimaryUsage</key><integer>2</integer>
+      <key>IOProbeScore</key><integer>2000</integer>
+    </dict>
   </dict>
-  <key>OSBundleUsageDescription</key><string>Delivers up to ten touch contacts to the WiredPad virtual display.</string>
+  <key>OSBundleUsageDescription</key><string>Delivers up to ten touch contacts and the Apple Pencil to the WiredPad virtual display.</string>
 </dict></plist>

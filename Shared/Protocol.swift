@@ -23,6 +23,8 @@ enum WireType: UInt8 {
     case brightnessSet = 14
     /// iPad to Mac: the current physical-screen brightness.
     case brightnessState = 15
+    /// iPad to Mac, a `PenPacket`: Apple Pencil samples since the last one.
+    case pen = 16
 
     // Link layer: every connection starts with a hello/welcome exchange, then carries
     // numbered session data so a session can move between USB and Wi-Fi without loss.
@@ -118,6 +120,26 @@ struct TouchPacket: Codable {
     let points: [TouchPoint]
 }
 
+/// One Apple Pencil sample. Position is normalized to the video area like `TouchPoint`.
+struct PenSample: Codable {
+    let x: Double
+    let y: Double
+    /// 0...1, where 1 is the Pencil's maximum force.
+    let pressure: Double
+    /// Tilt from the screen, in degrees: 90 is upright.
+    let altitude: Double
+    /// Direction the Pencil points, in degrees clockwise from the screen's x axis.
+    let azimuth: Double
+    /// The tip touches the screen; without it the Pencil hovers.
+    let touching: Bool
+    /// The Pencil is over the screen, touching or hovering.
+    let inRange: Bool
+}
+
+struct PenPacket: Codable {
+    let samples: [PenSample]
+}
+
 struct DisplayHello: Codable {
     let width: Int
     let height: Int
@@ -127,6 +149,13 @@ struct DisplayHello: Codable {
     let hardwareDecoders: [String]
     let maximumFramesPerSecond: Int
     let pixelsPerInch: Int
+    /// How far above SDR white the iPad's screen can go; 1 for an SDR screen. Older iPad
+    /// apps leave it out.
+    let edrHeadroom: Double?
+    /// Whether the screen shows Display P3 rather than sRGB. Older iPad apps leave it out.
+    let wideColor: Bool?
+    /// "iPad" or "iPhone", for the Mac to name it. Older apps leave it out.
+    let deviceKind: String?
 }
 
 /// The video area in pixels, as it is oriented on the iPad, and in points.

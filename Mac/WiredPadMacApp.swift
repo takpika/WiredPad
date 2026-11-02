@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let driver = DriverExtensionController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        driver.onActivated = { [weak model] in model?.reattachTouch() }
         model.startAutomatically()
     }
 
@@ -74,7 +75,7 @@ private struct StatusMenu: View {
 
         Divider()
 
-        Toggle("mac.menu.use", isOn: Binding(
+        Toggle(L10n.tr("mac.menu.use", model.deviceNoun), isOn: Binding(
             get: { model.running || model.connecting },
             set: { $0 ? model.start() : model.stop() }
         ))
@@ -122,7 +123,7 @@ private struct SettingsView: View {
                         (model.connecting ? "mac.state.connecting" : "mac.state.disconnected"))
             } footer: {
                 if !model.running {
-                    Text("mac.permission.note")
+                    Text(L10n.tr("mac.permission.note", model.deviceNoun))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -138,6 +139,13 @@ private struct SettingsView: View {
                 }
             }
 
+
+            Section {
+                Toggle("mac.hdr.toggle", isOn: $model.hdrEnabled)
+            } footer: {
+                Text(L10n.tr("mac.hdr.note", model.deviceNoun))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             Section {
                 if model.pairedPads.isEmpty {
@@ -156,7 +164,8 @@ private struct SettingsView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.tr("mac.diagnostics.touches", model.maxReceivedTouches, model.maxSentTouches))
+                    Text(L10n.tr("mac.diagnostics.touches", model.deviceNoun, model.maxReceivedTouches,
+                                 model.maxSentTouches))
                     Text(L10n.tr("mac.diagnostics.appkit", model.nativeTouchEvents, model.maxNativeTouches))
                     Text(L10n.tr("mac.diagnostics.selftest", model.selfTestStatus))
                     Text(model.macTelemetry)
@@ -170,7 +179,7 @@ private struct SettingsView: View {
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
-                Toggle("mac.diagnostics.overlay", isOn: Binding(
+                Toggle(L10n.tr("mac.diagnostics.overlay", model.deviceNoun), isOn: Binding(
                     get: { model.showDiagnostics },
                     set: { if $0 != model.showDiagnostics { model.toggleDiagnostics() } }
                 ))
@@ -186,7 +195,7 @@ private struct SettingsView: View {
             } header: {
                 Text("mac.diagnostics.title")
             } footer: {
-                Text("mac.footer")
+                Text(L10n.tr("mac.footer", model.deviceNoun))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -209,7 +218,10 @@ private struct SettingsView: View {
 }
 
 final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDelegate {
-    @Published var status = L10n.tr("mac.status.idle")
+    /// "iPad" or "iPhone": the device connected now, or the last one, for the app's wording.
+    @Published private(set) var deviceNoun = UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad"
+    @Published var status = L10n.tr("mac.status.idle",
+                                    UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad")
     @Published var running = false
     @Published private(set) var connecting = false
     @Published var displayID: UInt32 = 0
@@ -222,7 +234,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     @Published var volumeError: String?
     @Published var brightnessDiagnostic = L10n.tr("mac.brightness.notrun")
     @Published var macTelemetry = L10n.tr("mac.telemetry.waiting")
-    @Published var ipadTelemetry = L10n.tr("ipad.telemetry.waiting")
+    @Published var ipadTelemetry = L10n.tr("ipad.telemetry.waiting",
+                                           UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad")
     @Published var showDiagnostics = false
     @Published private(set) var displaySummary: String?
     @Published private(set) var route = WireSession.LinkStatus()
@@ -283,6 +296,14 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     private var cableInterfaces: [NWInterface] = []
     private var linklessSince: TimeInterval?
     private var usbPausedUntil = 0.0
+    /// Whether to send HDR to an iPad whose screen can show it.
+    @Published var hdrEnabled = UserDefaults.standard.object(forKey: "WiredPad.hdr") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(hdrEnabled, forKey: "WiredPad.hdr")
+            // The display, capture, and encoder all change, so start the session again.
+            if running || connecting { stop(); start() }
+        }
+    }
     private var reconnectWanted = false
     private var reconnectScheduled = false
     private var manuallyStopped = false
@@ -313,8 +334,14 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     private var targetFPS = 30
     private var displayMaximumFPS = 60
     private var captureDrops = 0
+    /// The encoder whose first captured frame was logged, to see what capture delivers.
+    private var loggedFrameEncoder: ObjectIdentifier?
     private var healthySeconds = 0
     private var touchDevice: CoreTouchDevice?
+    private var penDevice: CorePenDevice?
+    /// The last queued touch or pen report. Each waits for the one before, so reports reach the
+    /// devices in the order the iPad sent them even when one packet's sends are still running.
+    private var hidSending: Task<Void, Never>?
     private var volumeDevice: CoreVolumeDevice?
     private var brightnessDevice: CoreBrightnessDevice?
     private var lastIPadBrightness: Double?
@@ -441,7 +468,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         networkHints.onHint = { [weak self] state in self?.networkHint(state) }
         networkHints.start()
         refreshPairedPads()
-        if !retrying { status = L10n.tr("mac.status.searching") }
+        if !retrying { status = L10n.tr("mac.status.searching", deviceNoun) }
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let fd = WiredPadConnectUSB(Wire.port)
             DispatchQueue.main.async {
@@ -458,7 +485,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 } else {
                     self.connecting = false
                     self.retrying = true
-                    self.status = L10n.tr(String(cString: WiredPadUSBError()))
+                    self.status = L10n.tr(String(cString: WiredPadUSBError()), self.deviceNoun)
                     // No cable and no iPad on the network: look over AWDL as well.
                     self.wireless.peerToPeer = true
                     self.scheduleReconnect()
@@ -475,7 +502,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         let hello = LinkHello(sessionID: sessionID, macID: PairingStore.deviceID,
                               macName: Host.current().localizedName ?? "Mac",
                               kind: link.kind, received: received, resume: session != nil)
-        if session == nil { status = L10n.tr("mac.status.negotiating") }
+        if session == nil { status = L10n.tr("mac.status.negotiating", deviceNoun) }
         LinkHandshake.client(link, hello: hello) { [weak self] welcome in
             DispatchQueue.main.async {
                 guard let self else { link.close(); return }
@@ -488,7 +515,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                     linkLog.info("\(link.kind.rawValue, privacy: .public) handshake failed")
                     link.close()
                     if self.session == nil, self.connectionGeneration == generation, !self.manuallyStopped {
-                        self.status = L10n.tr("mac.error.handshake")
+                        self.status = L10n.tr("mac.error.handshake", self.deviceNoun)
                         self.disconnect()
                     }
                     if link.kind == .wifi {
@@ -941,7 +968,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             NSApp.activate()
             let alert = NSAlert()
             alert.messageText = L10n.tr("mac.pair.title", name)
-            alert.informativeText = L10n.tr("mac.pair.message", code)
+            alert.informativeText = L10n.tr("mac.pair.message", name, code)
             alert.addButton(withTitle: L10n.tr("mac.pair.confirm"))
             alert.addButton(withTitle: L10n.tr("mac.pair.cancel"))
             if alert.runModal() == .alertFirstButtonReturn { client?.approve() } else { client?.cancel() }
@@ -966,6 +993,9 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     }
 
     private func handleMessage(_ type: UInt8, _ payload: Data, generation: Int) {
+        // macOS's HiDPI modes have twice the points in pixels, never three times, so the
+        // display gets that even for a 3x iPhone; its own points would give the display
+        // modes that disagree, and touches would land two-thirds of the way out.
         switch type {
         case WireType.hello.rawValue:
             guard let hello = try? JSONDecoder().decode(DisplayHello.self, from: payload),
@@ -982,13 +1012,24 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                   (200...400).contains(hello.pixelsPerInch) else {
                 DispatchQueue.main.async {
                     guard self.connectionGeneration == generation, !self.manuallyStopped else { return }
-                    self.status = L10n.tr("mac.error.displayhello"); self.disconnect()
+                    self.status = L10n.tr("mac.error.displayhello", self.deviceNoun); self.disconnect()
                 }
                 return
             }
+            let shown = DisplayHello(width: hello.width, height: hello.height,
+                                     logicalWidth: hello.width / 2, logicalHeight: hello.height / 2,
+                                     protocolVersion: hello.protocolVersion,
+                                     hardwareDecoders: hello.hardwareDecoders,
+                                     maximumFramesPerSecond: hello.maximumFramesPerSecond,
+                                     pixelsPerInch: hello.pixelsPerInch, edrHeadroom: hello.edrHeadroom,
+                                     wideColor: hello.wideColor, deviceKind: hello.deviceKind)
             DispatchQueue.main.async {
                 guard self.connectionGeneration == generation, !self.manuallyStopped, !self.running else { return }
-                Task { await self.beginDisplay(hello: hello, generation: generation) }
+                if let kind = hello.deviceKind, ["iPad", "iPhone"].contains(kind), kind != self.deviceNoun {
+                    self.deviceNoun = kind
+                    UserDefaults.standard.set(kind, forKey: "WiredPad.deviceKind")
+                }
+                Task { await self.beginDisplay(hello: shown, generation: generation) }
             }
         case WireType.displaySize.rawValue:
             guard let size = try? JSONDecoder().decode(DisplaySize.self, from: payload),
@@ -996,14 +1037,20 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                   size.width.isMultiple(of: 2), size.height.isMultiple(of: 2),
                   (120...2048).contains(size.logicalWidth), (120...2048).contains(size.logicalHeight),
                   size.logicalWidth <= size.width, size.logicalHeight <= size.height else { return }
+            let shown = DisplaySize(width: size.width, height: size.height,
+                                    logicalWidth: size.width / 2, logicalHeight: size.height / 2)
             DispatchQueue.main.async {
                 guard self.connectionGeneration == generation else { return }
-                self.wantedSize = size
+                self.wantedSize = shown
                 Task { await self.applyWantedSize() }
             }
         case WireType.touches.rawValue:
             if let packet = try? JSONDecoder().decode(TouchPacket.self, from: payload) {
                 DispatchQueue.main.async { self.applyTouches(packet.points) }
+            }
+        case WireType.pen.rawValue:
+            if let packet = try? JSONDecoder().decode(PenPacket.self, from: payload) {
+                DispatchQueue.main.async { self.applyPen(packet.samples) }
             }
         case WireType.volumeStep.rawValue:
             guard let step = try? JSONDecoder().decode(VolumeStep.self, from: payload),
@@ -1035,7 +1082,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             guard let report = try? JSONDecoder().decode(VideoTelemetry.self, from: payload) else { return }
             updateForIPad(report)
             DispatchQueue.main.async {
-                self.ipadTelemetry = L10n.tr("ipad.telemetry.report", report.frames,
+                self.ipadTelemetry = L10n.tr("ipad.telemetry.report", self.deviceNoun, report.frames,
                                              report.averageProcessingMS, report.droppedFrames)
             }
         case WireType.pairingKey.rawValue:
@@ -1056,9 +1103,15 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         guard connectionGeneration == generation, !manuallyStopped else { return }
         let width = hello.width
         let height = hello.height
+        // iOS reports some EDR headroom on SDR screens too; HDR iPads and iPhones are also
+        // the ones with Display P3, which macOS needs before it plays HDR video at all.
+        let wantsHDR = hdrEnabled && (hello.edrHeadroom ?? 1) > 1 && hello.wideColor == true
+            && hello.hardwareDecoders.contains("hevc")
+        linkLog.info("\(hello.deviceKind ?? "?", privacy: .public) headroom \(hello.edrHeadroom ?? 0) wide \(hello.wideColor ?? false) hdr \(wantsHDR)")
         let id = WiredPadCreateDisplay(UInt32(width), UInt32(height),
                                        UInt32(hello.logicalWidth), UInt32(hello.logicalHeight),
-                                       UInt32(hello.maximumFramesPerSecond), UInt32(hello.pixelsPerInch))
+                                       UInt32(hello.maximumFramesPerSecond), UInt32(hello.pixelsPerInch),
+                                       wantsHDR, hello.wideColor ?? false)
         guard id != 0 else {
             status = L10n.tr(String(cString: WiredPadDisplayError()))
             disconnect()
@@ -1072,7 +1125,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             guard let displayMode = try selectMode(display: id, width: width, height: height,
                                                    logicalWidth: hello.logicalWidth,
                                                    logicalHeight: hello.logicalHeight) else {
-                status = L10n.tr("mac.error.mode")
+                status = L10n.tr("mac.error.mode", deviceNoun)
                 disconnect()
                 return
             }
@@ -1117,6 +1170,10 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             if let touchDevice {
                 await touchDevice.activate()
             }
+            penDevice = CorePenDevice()
+            if let penDevice {
+                await penDevice.activate()
+            }
             volumeDevice = CoreVolumeDevice()
             if let volumeDevice {
                 await volumeDevice.activate()
@@ -1126,9 +1183,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             var selectedEncoder: HardwareVideoEncoder?
             let candidateRates = Array(Set([hello.maximumFramesPerSecond, 60, 30]
                 .filter { $0 <= hello.maximumFramesPerSecond })).sorted(by: >)
+            // HDR first when wanted; plain HEVC and H.264 stay as fallbacks.
+            let candidateFormats = (wantsHDR ? [("hevc", true)] : []) +
+                ["hevc", "h264"].filter { hello.hardwareDecoders.contains($0) }.map { ($0, false) }
             for rate in candidateRates {
-                for codec in ["hevc", "h264"] where hello.hardwareDecoders.contains(codec) {
-                    if let candidate = try? HardwareVideoEncoder(codec: codec, width: width, height: height,
+                for (codec, hdr) in candidateFormats {
+                    if let candidate = try? HardwareVideoEncoder(codec: codec, hdr: hdr, width: width, height: height,
                                                                  frameRate: rate,
                                                                  onPacket: { [weak self] type, payload in
                         self?.enqueueVideo(type, payload)
@@ -1145,6 +1205,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 return
             }
             encoder = selectedEncoder
+            linkLog.info("video \(selectedEncoder.codec, privacy: .public) hdr=\(selectedEncoder.hdr) at \(selectedEncoder.frameRate) fps")
             // Over Wi-Fi, start at a rate it can take; the rate control raises it from there.
             if let rank = route.primaryRank, rank > NetworkPath.wiredLAN.rank {
                 selectedEncoder.setBitRate(min(selectedEncoder.bitRate, 12_000_000))
@@ -1158,6 +1219,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(selectedEncoder.frameRate))
             config.queueDepth = 3
             config.showsCursor = true
+            if selectedEncoder.hdr {
+                config.captureDynamicRange = .hdrLocalDisplay
+                config.pixelFormat = kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange
+                config.colorSpaceName = CGColorSpace.itur_2100_PQ
+                config.colorMatrix = kCVImageBufferYCbCrMatrix_ITU_R_2020
+            }
             captureFilter = filter
             captureConfig = config
             let stream = try makeStream(filter: filter, configuration: config)
@@ -1194,7 +1261,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     private func showDisplayStatus() {
         guard let hello = displayHello, let size = displaySize, let encoder else { return }
         displaySummary = L10n.tr("mac.menu.summary", size.width, size.height, hello.maximumFramesPerSecond,
-                                 encoder.codec.uppercased())
+                                 encoder.codec.uppercased() + (encoder.hdr ? " HDR" : ""))
         status = touchDevice != nil
             ? L10n.tr("mac.status.connected", size.width, size.height, size.logicalWidth,
                       size.logicalHeight, hello.pixelsPerInch, hello.maximumFramesPerSecond,
@@ -1245,7 +1312,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                 return
             }
             displayModeName = mode
-            let encoder = try HardwareVideoEncoder(codec: previousEncoder.codec, width: wanted.width,
+            let encoder = try HardwareVideoEncoder(codec: previousEncoder.codec, hdr: previousEncoder.hdr,
+                                                   width: wanted.width,
                                                    height: wanted.height, frameRate: previousEncoder.frameRate,
                                                    onPacket: { [weak self] type, payload in
                 self?.enqueueVideo(type, payload)
@@ -1255,7 +1323,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             var captured: SCDisplay?
             for _ in 0..<10 {
                 let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-                captured = content.displays.first { $0.displayID == displayID && $0.width == wanted.logicalWidth }
+                // Matched by shape, not by points: a 3x iPhone screen gets a 2x mode, whose
+                // points differ from the iPhone's. A stale filter would capture only part of it.
+                captured = content.displays.first {
+                    $0.displayID == displayID
+                        && abs($0.width * wanted.height - $0.height * wanted.width) <= wanted.height
+                }
                 if captured != nil { break }
                 try await Task.sleep(nanoseconds: 100_000_000)
             }
@@ -1384,6 +1457,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         running = false
         displaySummary = nil
         touchDevice = nil
+        penDevice = nil
         volumeDevice = nil
         brightnessDevice = nil
         scheduleReconnect()
@@ -1406,6 +1480,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         retrying = false
         disconnect()
         touchDevice = nil
+        penDevice = nil
         volumeDevice = nil
         brightnessDevice = nil
         lastIPadBrightness = nil
@@ -1425,6 +1500,13 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         let congested = queuedBytes > 2_000_000
         guard !congested else { captureDrops += 1; return }
         lastFrame = now
+        if loggedFrameEncoder != ObjectIdentifier(encoder), let pixel = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            loggedFrameEncoder = ObjectIdentifier(encoder)
+            let format = CVPixelBufferGetPixelFormatType(pixel)
+            let code = String(bytes: (0..<4).map { UInt8(truncatingIfNeeded: format >> (24 - $0 * 8)) }, encoding: .ascii) ?? "?"
+            let transfer = CVBufferCopyAttachment(pixel, kCVImageBufferTransferFunctionKey, nil) as? String ?? "none"
+            linkLog.info("captured frame \(code, privacy: .public) transfer \(transfer, privacy: .public)")
+        }
         adaptBitRate(now: now)
         do {
             try encoder.encode(sampleBuffer)
@@ -1518,11 +1600,49 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         current?.send(type, payload)
     }
 
+    /// While a driver is replaced, macOS gives the touch and pen devices its generic HID driver,
+    /// which stays after the new one is active; fresh devices are matched by the new driver.
+    func reattachTouch() {
+        guard displayID != 0, touchDevice != nil else { return }
+        let id = displayID
+        touchDevice = nil
+        penDevice = nil
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard let self, self.displayID == id, self.touchDevice == nil,
+                  let device = CoreTouchDevice(displayID: id) else { return }
+            await device.activate()
+            self.touchDevice = device
+            if let pen = CorePenDevice() {
+                await pen.activate()
+                self.penDevice = pen
+            }
+            linkLog.info("touch and pen devices made again for the new driver")
+        }
+    }
+
+    private func applyPen(_ samples: [PenSample]) {
+        guard let penDevice, displayID != 0 else { return }
+        let screen = CGDisplayBounds(displayID)
+        let previous = hidSending
+        hidSending = Task { @MainActor [weak self] in
+            // In order, so a lift is never overtaken by the next stroke.
+            await previous?.value
+            do {
+                for sample in samples.prefix(64) { try await penDevice.send(sample, on: screen) }
+            } catch {
+                self?.hidError = error.localizedDescription
+            }
+        }
+    }
+
     private func applyTouches(_ points: [TouchPoint]) {
         let active = Array(points.filter(\.down).prefix(10))
         maxReceivedTouches = max(maxReceivedTouches, active.count)
         if let touchDevice {
-            Task { @MainActor [weak self] in
+            let previous = hidSending
+            hidSending = Task { @MainActor [weak self] in
+                await previous?.value
                 do {
                     try await touchDevice.send(active)
                     self?.maxSentTouches = max(self?.maxSentTouches ?? 0, active.count)

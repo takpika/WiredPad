@@ -70,7 +70,7 @@ final class CoreBrightnessDevice: HIDVirtualDeviceDelegate, @unchecked Sendable 
     }
 
     func activate() async {
-        await device.activate(delegate: self)
+        await device.activate(delegate: WeakHIDDelegate(self))
     }
 
     /// Starts from the iPad's level without telling macOS.

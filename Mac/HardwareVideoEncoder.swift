@@ -14,6 +14,8 @@ enum HardwareVideoEncoderError: Error, LocalizedError {
 
 final class HardwareVideoEncoder {
     let codec: String
+    /// 10-bit HEVC tagged as BT.2100 PQ, for an iPad that can show HDR.
+    let hdr: Bool
     let width: Int
     let height: Int
     private(set) var frameRate: Int
@@ -27,12 +29,13 @@ final class HardwareVideoEncoder {
     private var failedFrames = 0
     private var totalEncodeMS = 0.0
 
-    init(codec: String, width: Int, height: Int, frameRate: Int,
+    init(codec: String, hdr: Bool = false, width: Int, height: Int, frameRate: Int,
          onPacket: @escaping (WireType, Data) -> Void) throws {
-        guard codec == "hevc" || codec == "h264" else {
+        guard codec == "hevc" || codec == "h264", !hdr || codec == "hevc" else {
             throw HardwareVideoEncoderError.operation("encode.stage.codec", -1)
         }
         self.codec = codec
+        self.hdr = hdr
         self.width = width
         self.height = height
         self.frameRate = frameRate
@@ -65,7 +68,14 @@ final class HardwareVideoEncoder {
         try set(kVTCompressionPropertyKey_RealTime, kCFBooleanTrue)
         try set(kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse)
         try set(kVTCompressionPropertyKey_ProfileLevel,
-                codec == "hevc" ? kVTProfileLevel_HEVC_Main_AutoLevel : kVTProfileLevel_H264_High_AutoLevel)
+                hdr ? kVTProfileLevel_HEVC_Main10_AutoLevel
+                    : codec == "hevc" ? kVTProfileLevel_HEVC_Main_AutoLevel : kVTProfileLevel_H264_High_AutoLevel)
+        if hdr {
+            // Written into the stream, so the iPad's decoder and display layer treat it as HDR.
+            try set(kVTCompressionPropertyKey_ColorPrimaries, kCVImageBufferColorPrimaries_ITU_R_2020)
+            try set(kVTCompressionPropertyKey_TransferFunction, kCVImageBufferTransferFunction_SMPTE_ST_2084_PQ)
+            try set(kVTCompressionPropertyKey_YCbCrMatrix, kCVImageBufferYCbCrMatrix_ITU_R_2020)
+        }
         try set(kVTCompressionPropertyKey_ExpectedFrameRate, frameRate as CFNumber)
         try set(kVTCompressionPropertyKey_AverageBitRate, bitRate as CFNumber)
         try set(kVTCompressionPropertyKey_MaxKeyFrameInterval, (frameRate * 2) as CFNumber)

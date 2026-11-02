@@ -15,11 +15,17 @@
 @end
 @interface CGVirtualDisplayMode : NSObject
 - (instancetype)initWithWidth:(NSUInteger)width height:(NSUInteger)height refreshRate:(CGFloat)refreshRate;
+- (instancetype)initWithWidth:(NSUInteger)width height:(NSUInteger)height refreshRate:(CGFloat)refreshRate
+             transferFunction:(uint32_t)transferFunction;
 @end
 
 static id heldDisplay;
 static NSString *displayError;
 static NSString *lastDisplayUUID;
+static BOOL heldDisplayHDR;
+static BOOL heldDisplayWideColor;
+/// The mode transfer function that makes macOS treat a virtual display as able to show EDR.
+static const uint32_t hdrTransferFunction = 1;
 
 static CGError setDisplayEnabled(uint32_t displayID, bool enabled) {
     typedef CGError (*ConfigureEnabled)(CGDisplayConfigRef, CGDirectDisplayID, bool);
@@ -46,9 +52,12 @@ int WiredPadReplugDisplay(uint32_t displayID) {
 
 static id displaySettings(Class settingsClass, Class modeClass, uint32_t width, uint32_t height,
                           uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate) {
-    CGVirtualDisplayMode *mode = [(CGVirtualDisplayMode *)[modeClass alloc] initWithWidth:width height:height refreshRate:refreshRate];
+    uint32_t transfer = heldDisplayHDR ? hdrTransferFunction : 0;
+    CGVirtualDisplayMode *mode = [(CGVirtualDisplayMode *)[modeClass alloc]
+                                  initWithWidth:width height:height refreshRate:refreshRate transferFunction:transfer];
     CGVirtualDisplayMode *logicalMode = [(CGVirtualDisplayMode *)[modeClass alloc]
-                                         initWithWidth:logicalWidth height:logicalHeight refreshRate:refreshRate];
+                                         initWithWidth:logicalWidth height:logicalHeight refreshRate:refreshRate
+                                         transferFunction:transfer];
     id settings = [settingsClass new];
     [settings setValue:@[mode, logicalMode] forKey:@"modes"];
     [settings setValue:@1 forKey:@"hiDPI"];
@@ -111,7 +120,11 @@ const char *WiredPadDisplayError(void) {
     return displayError.UTF8String ?: "Unknown virtual display error";
 }
 
-uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate, uint32_t pixelsPerInch) {
+uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logicalWidth, uint32_t logicalHeight, uint32_t refreshRate, uint32_t pixelsPerInch, BOOL hdr, BOOL wideColor) {
+    // A display kept from an earlier session is reused unless its dynamic range or gamut differs.
+    if (heldDisplay && (heldDisplayHDR != hdr || heldDisplayWideColor != wideColor)) WiredPadDestroyDisplay();
+    heldDisplayHDR = hdr;
+    heldDisplayWideColor = wideColor;
     if (heldDisplay) {
         return (uint32_t)[[heldDisplay valueForKey:@"displayID"] unsignedIntValue];
     }
@@ -142,6 +155,15 @@ uint32_t WiredPadCreateDisplay(uint32_t width, uint32_t height, uint32_t logical
         [descriptor setValue:[NSValue valueWithSize:NSMakeSize((double)width * 25.4 / pixelsPerInch,
                                                               (double)height * 25.4 / pixelsPerInch)]
                          forKey:@"sizeInMillimeters"];
+        // The iPad's own gamut, Display P3 or sRGB, with a D65 white. macOS also plays HDR
+        // video only on a wide-gamut external display, whatever its EDR headroom.
+        BOOL p3 = wideColor;
+        [descriptor setValue:[NSValue valueWithPoint:p3 ? NSMakePoint(0.680, 0.320) : NSMakePoint(0.640, 0.330)]
+                      forKey:@"redPrimary"];
+        [descriptor setValue:[NSValue valueWithPoint:p3 ? NSMakePoint(0.265, 0.690) : NSMakePoint(0.300, 0.600)]
+                      forKey:@"greenPrimary"];
+        [descriptor setValue:[NSValue valueWithPoint:NSMakePoint(0.150, 0.060)] forKey:@"bluePrimary"];
+        [descriptor setValue:[NSValue valueWithPoint:NSMakePoint(0.3127, 0.3290)] forKey:@"whitePoint"];
         dispatch_queue_t queue = dispatch_get_main_queue();
         [descriptor setQueue:queue];
         void (^termination)(id, id) = ^(id _unused, id _display) {};

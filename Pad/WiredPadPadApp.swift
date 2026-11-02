@@ -529,14 +529,18 @@ final class PadSession: ObservableObject {
             endSession()
             return
         }
-        let hello = DisplayHello(width: Int(max(screen.width, screen.height)),
-                                 height: Int(min(screen.width, screen.height)),
+        // Even sizes, as the Mac requires, rounded like the canvas sizes; an iPhone's are odd.
+        let hello = DisplayHello(width: Int(max(screen.width, screen.height)) / 4 * 4,
+                                 height: Int(min(screen.width, screen.height)) / 4 * 4,
                                  logicalWidth: Int(max(logicalScreen.width, logicalScreen.height)),
                                  logicalHeight: Int(min(logicalScreen.width, logicalScreen.height)),
                                  protocolVersion: Wire.version,
                                  hardwareDecoders: codecs,
                                  maximumFramesPerSecond: UIScreen.main.maximumFramesPerSecond,
-                                 pixelsPerInch: Self.screenPixelsPerInch())
+                                 pixelsPerInch: Self.screenPixelsPerInch(),
+                                 edrHeadroom: Double(UIScreen.main.potentialEDRHeadroom),
+                                 wideColor: UIScreen.main.traitCollection.displayGamut == .P3,
+                                 deviceKind: UIDevice.current.userInterfaceIdiom == .phone ? "iPhone" : "iPad")
         if let payload = try? JSONEncoder().encode(hello) { session.send(.hello, payload) }
         brightnessObservation = NotificationCenter.default.addObserver(
             forName: UIScreen.brightnessDidChangeNotification, object: UIScreen.main, queue: .main
@@ -788,6 +792,12 @@ final class PadSession: ObservableObject {
         session.send(.touches, data)
     }
 
+    func sendPen(_ samples: [PenSample]) {
+        guard let session, connected, !samples.isEmpty,
+              let data = try? JSONEncoder().encode(PenPacket(samples: samples)) else { return }
+        session.send(.pen, data)
+    }
+
     private var sentSize: DisplaySize?
     private var pendingResize: DispatchWorkItem?
 
@@ -836,6 +846,7 @@ private struct TouchScreen: UIViewRepresentable {
     func makeUIView(context: Context) -> TouchCanvas {
         let canvas = TouchCanvas()
         canvas.onTouches = onTouches
+        canvas.onPen = { [weak session] samples in session?.sendPen(samples) }
         canvas.onResize = { [weak session] size in session?.canvasResized(size) }
         session.canvas = canvas
         return canvas
@@ -850,8 +861,10 @@ private struct TouchScreen: UIViewRepresentable {
 private final class TouchCanvas: UIView {
     private let videoLayer = AVSampleBufferDisplayLayer()
     var onTouches: (([TouchPoint]) -> Void)?
+    var onPen: (([PenSample]) -> Void)?
     var onResize: ((CGSize) -> Void)?
     private var fingers: [ObjectIdentifier: (Int, CGPoint)] = [:]
+    private var penHovering = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -860,7 +873,14 @@ private final class TouchCanvas: UIView {
         // While the Mac catches up with a rotation or window resize, frames of the old shape
         // are fitted rather than stretched.
         videoLayer.videoGravity = .resizeAspect
+        // Video in a layer is tone mapped to SDR unless the layer asks for the full range.
+        if #available(iOS 26.0, *) {
+            videoLayer.preferredDynamicRange = .high
+        } else {
+            videoLayer.wantsExtendedDynamicRangeContent = true
+        }
         layer.addSublayer(videoLayer)
+        addGestureRecognizer(UIHoverGestureRecognizer(target: self, action: #selector(hovered(_:))))
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -898,7 +918,41 @@ private final class TouchCanvas: UIView {
         videoLayer.flushAndRemoveImage()
     }
 
+    private func penSample(at location: CGPoint, pressure: Double, altitude: CGFloat, azimuth: CGFloat,
+                           touching: Bool, inRange: Bool) -> PenSample {
+        PenSample(x: max(0, min(1, location.x / max(1, bounds.width))),
+                  y: max(0, min(1, location.y / max(1, bounds.height))),
+                  pressure: pressure, altitude: Double(altitude) * 180 / .pi,
+                  azimuth: Double(azimuth) * 180 / .pi, touching: touching, inRange: inRange)
+    }
+
+    /// Sends the Pencil's samples since the last event, so fast strokes keep their shape.
+    private func pen(_ touches: Set<UITouch>, with event: UIEvent?, ended: Bool) {
+        guard let touch = touches.first(where: { $0.type == .pencil }) else { return }
+        let moves = ended ? [touch] : (event?.coalescedTouches(for: touch) ?? [touch])
+        let samples = moves.map { move in
+            penSample(at: move.preciseLocation(in: self),
+                      pressure: move.maximumPossibleForce > 0 ? min(1, Double(move.force / move.maximumPossibleForce)) : 1,
+                      altitude: move.altitudeAngle, azimuth: move.azimuthAngle(in: self),
+                      touching: !ended, inRange: !ended)
+        }
+        onPen?(samples)
+    }
+
+    /// A Pencil above the screen, on iPads that sense it; a pointer hovers at no height.
+    @objc private func hovered(_ recognizer: UIHoverGestureRecognizer) {
+        guard #available(iOS 16.4, *) else { return }
+        let inRange = (recognizer.state == .began || recognizer.state == .changed) && recognizer.zOffset > 0
+        guard inRange || penHovering else { return }
+        penHovering = inRange
+        onPen?([penSample(at: recognizer.location(in: self), pressure: 0,
+                          altitude: recognizer.altitudeAngle, azimuth: recognizer.azimuthAngle(in: self),
+                          touching: false, inRange: inRange)])
+    }
+
     private func update(_ touches: Set<UITouch>, ended: Bool) {
+        let touches = touches.filter { $0.type != .pencil }
+        guard !touches.isEmpty else { return }
         for touch in touches {
             let key = ObjectIdentifier(touch)
             if ended { fingers.removeValue(forKey: key); continue }
@@ -915,10 +969,18 @@ private final class TouchCanvas: UIView {
         onTouches?(points)
     }
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) { update(touches, ended: false) }
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) { update(touches, ended: false) }
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) { update(touches, ended: true) }
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) { update(touches, ended: true) }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        pen(touches, with: event, ended: false); update(touches, ended: false)
+    }
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        pen(touches, with: event, ended: false); update(touches, ended: false)
+    }
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        pen(touches, with: event, ended: true); update(touches, ended: true)
+    }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        pen(touches, with: event, ended: true); update(touches, ended: true)
+    }
 }
 
 /// The iPad side of numeric-comparison pairing. The iPad commits to its nonce first, shows
