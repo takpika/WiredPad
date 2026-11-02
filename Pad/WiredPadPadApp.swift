@@ -798,6 +798,11 @@ final class PadSession: ObservableObject {
         session.send(.pen, data)
     }
 
+    func sendPenDoubleTap() {
+        guard let session, connected else { return }
+        session.send(.penDoubleTap, Data())
+    }
+
     private var sentSize: DisplaySize?
     private var pendingResize: DispatchWorkItem?
 
@@ -847,6 +852,7 @@ private struct TouchScreen: UIViewRepresentable {
         let canvas = TouchCanvas()
         canvas.onTouches = onTouches
         canvas.onPen = { [weak session] samples in session?.sendPen(samples) }
+        canvas.onPenDoubleTap = { [weak session] in session?.sendPenDoubleTap() }
         canvas.onResize = { [weak session] size in session?.canvasResized(size) }
         session.canvas = canvas
         return canvas
@@ -862,6 +868,7 @@ private final class TouchCanvas: UIView {
     private let videoLayer = AVSampleBufferDisplayLayer()
     var onTouches: (([TouchPoint]) -> Void)?
     var onPen: (([PenSample]) -> Void)?
+    var onPenDoubleTap: (() -> Void)?
     var onResize: ((CGSize) -> Void)?
     private var fingers: [ObjectIdentifier: (Int, CGPoint)] = [:]
     private var penHovering = false
@@ -882,6 +889,9 @@ private final class TouchCanvas: UIView {
         }
         layer.addSublayer(videoLayer)
         addGestureRecognizer(UIHoverGestureRecognizer(target: self, action: #selector(hovered(_:))))
+        let pencil = UIPencilInteraction()
+        pencil.delegate = self
+        addInteraction(pencil)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -920,11 +930,12 @@ private final class TouchCanvas: UIView {
     }
 
     private func penSample(at location: CGPoint, pressure: Double, altitude: CGFloat, azimuth: CGFloat,
-                           touching: Bool, inRange: Bool) -> PenSample {
+                           roll: CGFloat?, touching: Bool, inRange: Bool) -> PenSample {
         PenSample(x: max(0, min(1, location.x / max(1, bounds.width))),
                   y: max(0, min(1, location.y / max(1, bounds.height))),
                   pressure: pressure, altitude: Double(altitude) * 180 / .pi,
-                  azimuth: Double(azimuth) * 180 / .pi, touching: touching, inRange: inRange)
+                  azimuth: Double(azimuth) * 180 / .pi, touching: touching, inRange: inRange,
+                  roll: roll.map { Double($0) * 180 / .pi })
     }
 
     /// Sends the Pencil's samples since the last event, so fast strokes keep their shape.
@@ -936,6 +947,7 @@ private final class TouchCanvas: UIView {
             penSample(at: move.preciseLocation(in: self),
                       pressure: move.maximumPossibleForce > 0 ? min(1, Double(move.force / move.maximumPossibleForce)) : 1,
                       altitude: move.altitudeAngle, azimuth: move.azimuthAngle(in: self),
+                      roll: { if #available(iOS 17.5, *) { move.rollAngle } else { nil } }(),
                       touching: !ended, inRange: !ended)
         }
         onPen?(samples)
@@ -951,6 +963,7 @@ private final class TouchCanvas: UIView {
         penHovering = inRange
         onPen?([penSample(at: recognizer.location(in: self), pressure: 0,
                           altitude: recognizer.altitudeAngle, azimuth: recognizer.azimuthAngle(in: self),
+                          roll: { if #available(iOS 17.5, *) { recognizer.rollAngle } else { nil } }(),
                           touching: false, inRange: inRange)])
     }
 
@@ -984,6 +997,19 @@ private final class TouchCanvas: UIView {
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         pen(touches, with: event, ended: true); update(touches, ended: true)
+    }
+}
+
+// A double tap goes to the Mac, which hands it to apps as a change of mode, as Sidecar does;
+// what it changes is up to each Mac app, not the iPad's double-tap setting.
+extension TouchCanvas: UIPencilInteractionDelegate {
+    @available(iOS 17.5, *)
+    func pencilInteraction(_ interaction: UIPencilInteraction, didReceiveTap tap: UIPencilInteraction.Tap) {
+        onPenDoubleTap?()
+    }
+
+    func pencilInteractionDidTap(_ interaction: UIPencilInteraction) {
+        onPenDoubleTap?()
     }
 }
 

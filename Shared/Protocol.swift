@@ -25,6 +25,8 @@ enum WireType: UInt8 {
     case brightnessState = 15
     /// iPad to Mac, a `PenPacket`: Apple Pencil samples since the last one.
     case pen = 16
+    /// iPad to Mac, no payload: the side of the Apple Pencil was double-tapped.
+    case penDoubleTap = 17
 
     // Link layer: every connection starts with a hello/welcome exchange, then carries
     // numbered session data so a session can move between USB and Wi-Fi without loss.
@@ -134,6 +136,8 @@ struct PenSample: Codable {
     let touching: Bool
     /// The Pencil is over the screen, touching or hovering.
     let inRange: Bool
+    /// Barrel roll in degrees, from Apple Pencil Pro; nil from iPads and Pencils without it.
+    var roll: Double? = nil
 }
 
 struct PenPacket: Codable {

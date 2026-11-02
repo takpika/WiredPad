@@ -31,13 +31,15 @@ static void putNumber(OSDictionary *properties, const char *key, uint64_t value)
     }
 }
 
-// HIDDriverKit exports IOHIDEvent but its public headers only declare the name. This is the
-// exported call this driver uses, as the library spells it.
+// HIDDriverKit exports IOHIDEvent but its public headers only declare the name. These are the
+// exported calls this driver uses, as the library spells them.
 class IOHIDEvent : public OSObject {
 public:
+    static IOHIDEvent *withType(uint32_t type, uint64_t timestamp, uint32_t size, uint32_t options);
     static IOHIDEvent *vendorDefinedEvent(uint64_t timestamp, uint32_t usagePage, uint32_t usage,
                                           uint32_t version, uint8_t *data, uint32_t length,
                                           uint32_t options);
+    void setIntegerValue(uint32_t field, uint64_t value);
 };
 
 namespace {
@@ -52,8 +54,8 @@ enum : uint32_t {
 constexpr uint8_t subtypeTabletPoint = 1, subtypeTabletProximity = 2;
 constexpr int16_t subtypeAuxMouseButtons = 7;
 constexpr uint8_t pointerPen = 1;
-// Device ID, absolute X and Y, buttons, tilt X and Y, pressure.
-constexpr uint32_t tabletCapabilities = 0x0001 | 0x0002 | 0x0004 | 0x0040 | 0x0080 | 0x0100 | 0x0400;
+// Device ID, absolute X and Y, buttons, tilt X and Y, pressure, rotation.
+constexpr uint32_t tabletCapabilities = 0x0001 | 0x0002 | 0x0004 | 0x0040 | 0x0080 | 0x0100 | 0x0400 | 0x2000;
 constexpr uint16_t penVendorID = 0x5750, penTabletID = 3, penDeviceID = 0x5750;
 constexpr uint64_t penUniqueID = 0x5750'0003'0000'0001ULL;
 
@@ -127,10 +129,17 @@ static_assert(sizeof(TabletPoint) == 32 && sizeof(TabletProximity) == 32, "table
 static_assert(sizeof(MouseButton) == 48 && sizeof(MouseMove) == 48 && sizeof(SystemDefined) == 48,
               "event data layout");
 static_assert(sizeof(EventRecord) == 0x7C, "event record layout");
+
+// A generic gesture event, as Sidecar sends a double tap on the Pencil: a tap (type 0) with a
+// count of two. AppKit makes it a change-mode event (NSEventTypeChangeMode).
+constexpr uint32_t eventTypeGenericGesture = 0x27;
+constexpr uint32_t fieldGenericGestureType = 0x270000, fieldGenericGestureTapCount = 0x270001;
+constexpr uint64_t genericGestureTap = 0;
 }
 
 /// Report 2 holds one Apple Pencil: flags, x and y as 16.16 fixed point points on the global
-/// display space, pressure 0...32767, tilt x and y in degrees, twist in degrees.
+/// display space, pressure 0...32767, tilt x and y in degrees, twist (barrel roll) in 1/64
+/// degree.
 ///
 /// macOS's translator for HID digitizer events keeps a stylus's pressure and tilt to separate
 /// tablet events and leaves the mouse events it makes without them, so apps that read
@@ -155,6 +164,7 @@ void WiredPadTouchDriver::handlePen(uint64_t timestamp, uint8_t *report, uint32_
     const IOFixed y = read32(5);
     const uint16_t pressure = uint16_t(pen[9]) | (uint16_t(pen[10]) << 8);
     const int8_t tiltX = int8_t(pen[11]), tiltY = int8_t(pen[12]);
+    const uint16_t twist = uint16_t(pen[13]) | (uint16_t(pen[14]) << 8);
 
     TabletPoint point = {};
     point.x = x / 256;  // 1/256 point
@@ -162,6 +172,7 @@ void WiredPadTouchDriver::handlePen(uint64_t timestamp, uint8_t *report, uint32_
     point.pressure = tip ? uint16_t((uint32_t(pressure) * 65535U) / 32767U) : 0;
     point.tiltX = int16_t(int32_t(tiltX) * 32767 / 90);
     point.tiltY = int16_t(int32_t(tiltY) * 32767 / 90);
+    point.rotation = twist;  // 1/64 degree, as macOS reads it
     point.deviceID = penDeviceID;
 
     auto send = [&](const EventRecord &record) {
@@ -319,6 +330,15 @@ void WiredPadTouchDriver::handleReport(uint64_t timestamp, uint8_t *report,
     }
     if (type == kIOHIDReportTypeInput && reportID == 2 && report) {
         handlePen(timestamp, report, reportLength);
+        return;
+    }
+    if (type == kIOHIDReportTypeInput && reportID == 3) {
+        if (IOHIDEvent *tap = IOHIDEvent::withType(eventTypeGenericGesture, timestamp, 0, 0)) {
+            tap->setIntegerValue(fieldGenericGestureType, genericGestureTap);
+            tap->setIntegerValue(fieldGenericGestureTapCount, 2);
+            dispatchEvent(tap);
+            tap->release();
+        }
         return;
     }
     if (type != kIOHIDReportTypeInput || reportID != 1 || !report) return;

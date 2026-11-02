@@ -1052,6 +1052,8 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             if let packet = try? JSONDecoder().decode(PenPacket.self, from: payload) {
                 DispatchQueue.main.async { self.applyPen(packet.samples) }
             }
+        case WireType.penDoubleTap.rawValue:
+            DispatchQueue.main.async { self.applyPenDoubleTap() }
         case WireType.volumeStep.rawValue:
             guard let step = try? JSONDecoder().decode(VolumeStep.self, from: payload),
                   step.direction == 1 || step.direction == -1 else { return }
@@ -1630,6 +1632,19 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             await previous?.value
             do {
                 for sample in samples.prefix(64) { try await penDevice.send(sample, on: screen) }
+            } catch {
+                self?.hidError = error.localizedDescription
+            }
+        }
+    }
+
+    private func applyPenDoubleTap() {
+        guard let penDevice else { return }
+        let previous = hidSending
+        hidSending = Task { @MainActor [weak self] in
+            await previous?.value
+            do {
+                try await penDevice.sendDoubleTap()
             } catch {
                 self?.hidError = error.localizedDescription
             }

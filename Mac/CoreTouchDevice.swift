@@ -111,10 +111,19 @@ final class CorePenDevice: HIDVirtualDeviceDelegate, @unchecked Sendable {
         let y = screen.minY + min(1, max(0, sample.y)) * screen.height
         let pressure = UInt16((min(1, max(0, sample.touching ? sample.pressure : 0)) * 32767).rounded())
         let flags: UInt8 = (sample.touching ? 1 : 0) | (sample.inRange ? 1 << 4 : 0)
+        // Barrel roll in 1/64 degree, the unit macOS gives tablet rotation in.
+        let roll = sample.roll.map { $0.truncatingRemainder(dividingBy: 360) } ?? 0
+        let twist = UInt16(((roll < 0 ? roll + 360 : roll) * 64).rounded()) % 23040
         let report: [UInt8] = [2, flags] + fixed(x) + fixed(y) +
             [UInt8(truncatingIfNeeded: pressure), UInt8(truncatingIfNeeded: pressure >> 8),
-             tilt(cos(azimuth)), tilt(sin(azimuth)), 0, 0]
+             tilt(cos(azimuth)), tilt(sin(azimuth)),
+             UInt8(truncatingIfNeeded: twist), UInt8(truncatingIfNeeded: twist >> 8)]
         try await device.dispatchInputReport(data: Data(report), timestamp: SuspendingClock().now)
+    }
+
+    /// Report 3: a double tap on the side of the Pencil.
+    func sendDoubleTap() async throws {
+        try await device.dispatchInputReport(data: Data([3, 1]), timestamp: SuspendingClock().now)
     }
 
     func hidVirtualDevice(_ device: HIDVirtualDevice, receivedSetReportRequestOfType type: HIDReportType, id: HIDReportID?, data: Data) async throws {}

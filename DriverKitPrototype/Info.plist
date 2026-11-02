@@ -5,8 +5,8 @@
   <key>CFBundleExecutable</key><string>WiredPadTouchDriver</string>
   <key>CFBundleName</key><string>WiredPadTouchDriver</string>
   <key>CFBundlePackageType</key><string>DEXT</string>
-  <key>CFBundleVersion</key><string>29</string>
-  <key>CFBundleShortVersionString</key><string>1.19</string>
+  <key>CFBundleVersion</key><string>31</string>
+  <key>CFBundleShortVersionString</key><string>1.21</string>
   <key>IOKitPersonalities</key><dict>
     <key>WiredPad 10-point Touchscreen</key><dict>
       <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
