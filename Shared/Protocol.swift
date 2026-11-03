@@ -48,6 +48,16 @@ enum WireType: UInt8 {
     case pairNonce = 32
     case pairReveal = 33
     case pairSealedKey = 34
+
+    // Signing with keys kept in the iPad's Secure Enclave, for SSH and sudo on the Mac.
+    /// Mac to iPad, no payload: make this Mac's keys, once the user confirms on the iPad.
+    case keySetup = 40
+    /// iPad to Mac, a `DeviceKeys`: the answer to `keySetup`.
+    case deviceKeys = 41
+    /// Mac to iPad, a `SignRequest`.
+    case signRequest = 42
+    /// iPad to Mac, a `SignResponse`.
+    case signResponse = 43
 }
 
 enum LinkKind: String, Codable {
@@ -144,6 +154,36 @@ struct PenPacket: Codable {
     let samples: [PenSample]
 }
 
+/// What a Secure Enclave key signs for. Each purpose has a key of its own, so a signature made
+/// for one can never pass for the other.
+enum SigningPurpose: String, Codable, CaseIterable {
+    case ssh, sudo
+}
+
+/// The public keys the iPad made for this Mac, P-256 in ANSI X9.63 form, by purpose, or why
+/// there are none.
+struct DeviceKeys: Codable, Equatable {
+    let keys: [SigningPurpose: Data]
+    let deviceName: String
+    let error: String?
+}
+
+/// Asks the iPad to sign `data` after the user confirms with Touch ID or Face ID.
+struct SignRequest: Codable {
+    let id: UUID
+    let purpose: SigningPurpose
+    /// Shown to the user, such as the command sudo is about to run.
+    let reason: String
+    let data: Data
+}
+
+/// An ECDSA signature over SHA-256 of the request's data, DER encoded, or why there is none.
+struct SignResponse: Codable {
+    let id: UUID
+    let signature: Data?
+    let error: String?
+}
+
 struct DisplayHello: Codable {
     let width: Int
     let height: Int
@@ -160,6 +200,9 @@ struct DisplayHello: Codable {
     let wideColor: Bool?
     /// "iPad" or "iPhone", for the Mac to name it. Older apps leave it out.
     let deviceKind: String?
+    /// How the device confirms signatures: "touchID", "faceID" or "opticID", or nil without any.
+    /// Older apps leave it out.
+    var biometry: String? = nil
 }
 
 /// The video area in pixels, as it is oriented on the iPad, and in points.

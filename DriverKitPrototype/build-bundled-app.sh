@@ -52,6 +52,12 @@ ditto "$dext" "$app/Contents/Library/SystemExtensions/$driver_id.dext"
   "$project_root/Mac/DisplayModeHelper.c" -o "$app/Contents/MacOS/WiredPadModeHelper"
 codesign --force --sign "$WIREPAD_SIGNING_IDENTITY" --options runtime \
   "$app/Contents/MacOS/WiredPadModeHelper"
+# The sudo PAM module and its installer, which the app runs with administrator rights.
+/usr/bin/clang -O2 -bundle -mmacosx-version-min=15.0 -arch arm64e -arch x86_64 \
+  -framework Security -framework CoreFoundation -lpam \
+  "$project_root/PAM/pam_wiredpad.c" -o "$app/Contents/Resources/pam_wiredpad.so"
+codesign --force --sign "$WIREPAD_SIGNING_IDENTITY" "$app/Contents/Resources/pam_wiredpad.so"
+cp "$project_root/PAM/install.sh" "$app/Contents/Resources/install-sudo.sh"
 codesign --force --sign "$WIREPAD_SIGNING_IDENTITY" \
   --entitlements "$project_root/Mac/WiredPadMac-DriverKit.entitlements" \
   --options runtime "$app"

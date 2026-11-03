@@ -13,13 +13,11 @@ struct WiredPadMacApp: App {
         MenuBarExtra {
             StatusMenu(model: delegate.model, wireless: delegate.model.wireless, driver: delegate.driver)
         } label: {
-            StatusIcon(model: delegate.model)
+            StatusIcon(model: delegate.model, delegate: delegate)
         }
-        Window("WiredPad", id: "settings") {
+        Settings {
             SettingsView(model: delegate.model, driver: delegate.driver)
         }
-        .windowResizability(.contentSize)
-        .defaultLaunchBehavior(.suppressed)
     }
 }
 
@@ -35,19 +33,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         WiredPadDestroyDisplay()
     }
+
+    var openSettings: (() -> Void)?
+
+    /// Opening the app again, from Finder or the Dock, shows its settings: it has no other window.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        openSettings?()
+        NSApp.activate()
+        return false
+    }
 }
 
 private struct StatusIcon: View {
     @ObservedObject var model: MacSession
+    let delegate: AppDelegate
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        if model.hidError != nil || model.volumeError != nil {
-            Image(systemName: "ipad.landscape.badge.exclamationmark")
-        } else if model.running {
-            Image(systemName: "ipad.landscape.badge.play")
-        } else {
-            Image(systemName: "ipad.landscape")
+        Group {
+            if model.hidError != nil || model.volumeError != nil {
+                Image(systemName: "ipad.landscape.badge.exclamationmark")
+            } else if model.running {
+                Image(systemName: "ipad.landscape.badge.play")
+            } else {
+                Image(systemName: "ipad.landscape")
+            }
         }
+        // The icon is always there, so it lends the app delegate SwiftUI's way to open Settings.
+        .onAppear { delegate.openSettings = { openSettings() } }
     }
 }
 
@@ -55,7 +68,7 @@ private struct StatusMenu: View {
     @ObservedObject var model: MacSession
     @ObservedObject var wireless: WirelessDirectory
     @ObservedObject var driver: DriverExtensionController
-    @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Text(model.running ? "mac.state.connected" :
@@ -92,7 +105,7 @@ private struct StatusMenu: View {
         Divider()
 
         Button("mac.menu.settings") {
-            openWindow(id: "settings")
+            openSettings()
             NSApp.activate()
         }
         .keyboardShortcut(",")
@@ -106,120 +119,31 @@ private struct StatusMenu: View {
 }
 
 
-private struct SettingsView: View {
-    @ObservedObject var model: MacSession
-    @ObservedObject var driver: DriverExtensionController
-
-    var body: some View {
-        Form {
-            Section {
-                Text(model.status)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let hidError = model.hidError { errorRow("mac.error.hid", hidError) }
-                if let volumeError = model.volumeError { errorRow("mac.error.volume", volumeError) }
-            } header: {
-                Text(model.running ? "mac.state.connected" :
-                        (model.connecting ? "mac.state.connecting" : "mac.state.disconnected"))
-            } footer: {
-                if !model.running {
-                    Text(L10n.tr("mac.permission.note", model.deviceNoun))
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            if driver.isBundled {
-                Section {
-                    LabeledContent {
-                        Button("mac.driver.activate") { driver.activate() }
-                    } label: {
-                        Text("mac.driver.title")
-                        Text(driver.status)
-                    }
-                }
-            }
-
-
-            Section {
-                Toggle("mac.hdr.toggle", isOn: $model.hdrEnabled)
-            } footer: {
-                Text(L10n.tr("mac.hdr.note", model.deviceNoun))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section {
-                if model.pairedPads.isEmpty {
-                    Text("mac.pair.none")
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                ForEach(model.pairedPads) { pad in
-                    LabeledContent(pad.name) {
-                        Button("mac.pair.forget") { model.forget(pad) }
-                    }
-                }
-            } header: {
-                Text("mac.pair.section")
-            }
-
-            Section {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L10n.tr("mac.diagnostics.touches", model.deviceNoun, model.maxReceivedTouches,
-                                 model.maxSentTouches))
-                    Text(L10n.tr("mac.diagnostics.appkit", model.nativeTouchEvents, model.maxNativeTouches))
-                    Text(L10n.tr("mac.diagnostics.selftest", model.selfTestStatus))
-                    Text(model.macTelemetry)
-                    Text(model.ipadTelemetry)
-                    if !model.linkDiagnostics.isEmpty { Text(model.linkDiagnostics) }
-                    if model.displayID != 0 {
-                        Text(L10n.tr("mac.display.id", model.displayID))
-                        Text(model.brightnessDiagnostic)
-                    }
-                }
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-                Toggle(L10n.tr("mac.diagnostics.overlay", model.deviceNoun), isOn: Binding(
-                    get: { model.showDiagnostics },
-                    set: { if $0 != model.showDiagnostics { model.toggleDiagnostics() } }
-                ))
-                if model.displayID != 0 {
-                    HStack {
-                        Button("mac.diagnostics.probe") { model.openTouchProbe() }
-                        Button("mac.diagnostics.hidtest") { model.sendTestTouches() }
-                        Button("mac.diagnostics.brightnessprobe") { model.probeBrightness() }
-                        Button("mac.diagnostics.handover") { model.testHandover() }
-                            .disabled(!(model.route.usb && model.route.wifi))
-                    }
-                }
-            } header: {
-                Text("mac.diagnostics.title")
-            } footer: {
-                Text(L10n.tr("mac.footer", model.deviceNoun))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .formStyle(.grouped)
-        .frame(width: 520)
-        .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func errorRow(_ key: String, _ detail: String) -> some View {
-        LabeledContent {
-            Text(detail)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-                .textSelection(.enabled)
-        } label: {
-            Label(L10n.tr(key), systemImage: "exclamationmark.triangle.fill")
-                .symbolRenderingMode(.multicolor)
-        }
-    }
-}
-
 final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDelegate {
     /// "iPad" or "iPhone": the device connected now, or the last one, for the app's wording.
     @Published private(set) var deviceNoun = UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad"
+    /// The connected device's Touch ID, Face ID or Optic ID, or the last one's.
+    @Published private(set) var deviceBiometry = UserDefaults.standard.string(forKey: "WiredPad.deviceBiometry")
+    /// Whether the connected device, or the last one, can show HDR.
+    @Published private(set) var deviceSupportsHDR = UserDefaults.standard.bool(forKey: "WiredPad.deviceHDR")
+
+    var biometrySymbol: String {
+        switch deviceBiometry {
+        case "faceID": return "faceid"
+        case "opticID": return "opticid"
+        default: return "touchid"
+        }
+    }
+
+    /// The name of the device's biometry, for the app's wording.
+    var biometryName: String {
+        switch deviceBiometry {
+        case "touchID": return "Touch ID"
+        case "faceID": return "Face ID"
+        case "opticID": return "Optic ID"
+        default: return L10n.tr("mac.biometry.none")
+        }
+    }
     @Published var status = L10n.tr("mac.status.idle",
                                     UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad")
     @Published var running = false
@@ -234,6 +158,9 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     @Published var volumeError: String?
     @Published var brightnessDiagnostic = L10n.tr("mac.brightness.notrun")
     @Published var macTelemetry = L10n.tr("mac.telemetry.waiting")
+    /// The last second's video figures from each side, for the diagnostics page.
+    @Published private(set) var macReport: VideoTelemetry?
+    @Published private(set) var ipadReport: VideoTelemetry?
     @Published var ipadTelemetry = L10n.tr("ipad.telemetry.waiting",
                                            UserDefaults.standard.string(forKey: "WiredPad.deviceKind") ?? "iPad")
     @Published var showDiagnostics = false
@@ -243,6 +170,22 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     @Published private(set) var pairedPads: [PairingStore.Peer] = []
 
     let wireless = WirelessDirectory()
+    /// SSH and sudo with keys on the iPad.
+    let signer = DeviceSigner()
+    private lazy var sshAgent = SSHAgent(signer: signer) {
+        SSHConfig.upstream ?? ProcessInfo.processInfo.environment["SSH_AUTH_SOCK"]
+    }
+    private lazy var sudoBridge = SudoBridge(signer: signer) { [signer] in
+        // From the stored copies: this runs on the bridge's thread.
+        let biometry = UserDefaults.standard.string(forKey: "WiredPad.deviceBiometry")
+        let name = ["touchID": "Touch ID", "faceID": "Face ID", "opticID": "Optic ID"][biometry ?? ""]
+            ?? L10n.tr("mac.biometry.none")
+        return L10n.tr("mac.signing.sudo.wait", signer.setup?.deviceName ?? "iPad", name)
+    }
+    @Published private(set) var signingSetup: DeviceSigner.Setup?
+    @Published private(set) var signingStatus = ""
+    @Published private(set) var sshEnabled = SSHConfig.isEnabled
+    @Published private(set) var sudoState = SudoSetup.state
     private let networkHints = NetworkHintWatcher()
     /// The iPad said over Bluetooth that it is not on a Wi-Fi network.
     private var iPadOffNetwork = false
@@ -453,7 +396,62 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
     }
 
     func startAutomatically() {
+        try? FileManager.default.createDirectory(at: DeviceSigner.directory, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        sshAgent.start()
+        sudoBridge.start()
+        signingSetup = signer.setup
         if !manuallyStopped { start() }
+    }
+
+    /// Asks the connected iPad to make keys for this Mac, after its user confirms there.
+    func setUpSigning() {
+        let started = signer.beginSetup { [weak self] answer in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.signingSetup = self.signer.setup
+                self.signingStatus = answer.error.map { L10n.tr("mac.signing.setup.failed", $0) } ?? ""
+                self.sudoState = SudoSetup.state
+            }
+        }
+        signingStatus = started ? L10n.tr("mac.signing.setup.waiting", deviceNoun, biometryName)
+            : L10n.tr("mac.signing.setup.noipad", deviceNoun)
+    }
+
+    /// Removes the keys, and with them the SSH setup that used them. sudo's is removed from a
+    /// terminal, so it must be off first.
+    func forgetSigning() {
+        refreshSigning()
+        guard sudoState == .off else {
+            signingStatus = L10n.tr("mac.signing.sudo.first")
+            return
+        }
+        if sshEnabled { setSSH(false) }
+        signer.forget()
+        signingSetup = nil
+        signingStatus = ""
+    }
+
+    func setSSH(_ on: Bool) {
+        do {
+            try on ? SSHConfig.enable() : SSHConfig.disable()
+            signingStatus = ""
+        } catch {
+            signingStatus = L10n.tr("mac.signing.ssh.failed", error.localizedDescription)
+        }
+        sshEnabled = SSHConfig.isEnabled
+    }
+
+    func copiedSudoCommand() {
+        signingStatus = L10n.tr("mac.signing.sudo.copied")
+    }
+
+    /// Reads the SSH and sudo setup again, which may have changed outside the app.
+    func refreshSigning() {
+        sshEnabled = SSHConfig.isEnabled
+        let previous = sudoState
+        sudoState = SudoSetup.state
+        if sudoState != previous, signingStatus == L10n.tr("mac.signing.sudo.copied") { signingStatus = "" }
     }
 
     func start() {
@@ -604,6 +602,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             }
             session = created
             sessionIPadID = welcome.iPadID
+            signer.connect({ [weak created] type, data in created?.send(type, data) }, iPadID: welcome.iPadID)
             sendLock.lock(); sendSession = created; sendLock.unlock()
             sessionQueue.async { created.attach(link, peerReceived: welcome.received, rank: rank) }
             nextTrial = ProcessInfo.processInfo.systemUptime + 20
@@ -1029,6 +1028,11 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
                     self.deviceNoun = kind
                     UserDefaults.standard.set(kind, forKey: "WiredPad.deviceKind")
                 }
+                self.deviceBiometry = hello.biometry
+                UserDefaults.standard.set(hello.biometry, forKey: "WiredPad.deviceBiometry")
+                self.deviceSupportsHDR = (hello.edrHeadroom ?? 1) > 1 && hello.wideColor == true
+                    && hello.hardwareDecoders.contains("hevc")
+                UserDefaults.standard.set(self.deviceSupportsHDR, forKey: "WiredPad.deviceHDR")
                 Task { await self.beginDisplay(hello: shown, generation: generation) }
             }
         case WireType.displaySize.rawValue:
@@ -1086,7 +1090,12 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             DispatchQueue.main.async {
                 self.ipadTelemetry = L10n.tr("ipad.telemetry.report", self.deviceNoun, report.frames,
                                              report.averageProcessingMS, report.droppedFrames)
+                self.ipadReport = report
             }
+        case WireType.deviceKeys.rawValue:
+            if let keys = try? JSONDecoder().decode(DeviceKeys.self, from: payload) { signer.receive(keys) }
+        case WireType.signResponse.rawValue:
+            if let response = try? JSONDecoder().decode(SignResponse.self, from: payload) { signer.receive(response) }
         case WireType.pairingKey.rawValue:
             guard let message = try? JSONDecoder().decode(PairingKeyMessage.self, from: payload),
                   message.key.count == 32 else { return }
@@ -1426,6 +1435,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
         }
         session = nil
         sessionIPadID = nil
+        signer.connect(nil, iPadID: nil)
         sendLock.lock(); sendSession = nil; sendLock.unlock()
         linkMonitor?.invalidate()
         linkMonitor = nil
@@ -1533,6 +1543,7 @@ final class MacSession: NSObject, ObservableObject, SCStreamOutput, SCStreamDele
             self.macTelemetry = L10n.tr("mac.telemetry.report", report.frames, currentTarget,
                                        report.averageProcessingMS, report.queuedBytes / 1024,
                                        report.bitRate / 1_000_000)
+            self.macReport = report
         }
     }
 

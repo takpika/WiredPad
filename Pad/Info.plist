@@ -14,21 +14,15 @@
 	<string>0.1</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>WiredPad uses Bluetooth to notice quickly when the iPad joins or leaves a Wi-Fi network.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_wiredpad._tcp</string>
 		<string>_wiredpad-pair._tcp</string>
 	</array>
-	<key>WiFiAwareServices</key>
-	<dict>
-		<key>_wiredpad._tcp</key>
-		<dict>
-			<key>Publishable</key>
-			<dict/>
-		</dict>
-	</dict>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>WiredPad uses Bluetooth to notice quickly when the iPad joins or leaves a Wi-Fi network.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>WiredPad uses Face ID to approve SSH logins and sudo on your Mac with a key that stays on this device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>WiredPad uses the local network to connect your Mac and iPad over USB and Wi-Fi.</string>
 	<key>UIApplicationSceneManifest</key>
@@ -45,5 +39,13 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
+	<key>WiFiAwareServices</key>
+	<dict>
+		<key>_wiredpad._tcp</key>
+		<dict>
+			<key>Publishable</key>
+			<dict/>
+		</dict>
+	</dict>
 </dict>
 </plist>

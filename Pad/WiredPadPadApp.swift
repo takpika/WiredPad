@@ -6,6 +6,7 @@ import CoreMedia
 import VideoToolbox
 import MediaPlayer
 import CryptoKit
+import LocalAuthentication
 #if canImport(WiFiAware)
 import WiFiAware
 #endif
@@ -540,7 +541,8 @@ final class PadSession: ObservableObject {
                                  pixelsPerInch: Self.screenPixelsPerInch(),
                                  edrHeadroom: Double(UIScreen.main.potentialEDRHeadroom),
                                  wideColor: UIScreen.main.traitCollection.displayGamut == .P3,
-                                 deviceKind: UIDevice.current.userInterfaceIdiom == .phone ? "iPhone" : "iPad")
+                                 deviceKind: UIDevice.current.userInterfaceIdiom == .phone ? "iPhone" : "iPad",
+                                 biometry: Self.biometry())
         if let payload = try? JSONEncoder().encode(hello) { session.send(.hello, payload) }
         brightnessObservation = NotificationCenter.default.addObserver(
             forName: UIScreen.brightnessDidChangeNotification, object: UIScreen.main, queue: .main
@@ -599,6 +601,18 @@ final class PadSession: ObservableObject {
             guard let self else { return }
             self.listenerRestartScheduled = false
             if UIApplication.shared.applicationState == .active { self.start() }
+        }
+    }
+
+    /// The kind of Touch ID, Face ID or Optic ID this device has, for the Mac to name it.
+    private static func biometry() -> String? {
+        let context = LAContext()
+        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil) else { return nil }
+        switch context.biometryType {
+        case .touchID: return "touchID"
+        case .faceID: return "faceID"
+        case .opticID: return "opticID"
+        default: return nil
         }
     }
 
@@ -769,10 +783,50 @@ final class PadSession: ObservableObject {
                 self.macWantsPeerToPeer = flag == 1
                 self.updatePeerToPeer()
             }
+        } else if type == WireType.keySetup.rawValue {
+            DispatchQueue.main.async { self.setUpKeys(for: session) }
+        } else if type == WireType.signRequest.rawValue,
+                  let request = try? JSONDecoder().decode(SignRequest.self, from: data) {
+            DispatchQueue.main.async { self.sign(request, for: session) }
         } else if type == WireType.pairingRequest.rawValue {
             // Only over the USB tunnel: plugging in is what authorizes a new Mac.
             guard session.has(.usb) else { return }
             DispatchQueue.main.async { self.provideKey(to: session) }
+        }
+    }
+
+    private let signingQueue = DispatchQueue(label: "WiredPad.signing")
+
+    /// Makes this Mac's keys once the user confirms, and sends the Mac their public halves.
+    private func setUpKeys(for session: WireSession) {
+        guard session === self.session, let macID = sessionMacID else { return }
+        let reason = L10n.tr("ipad.signing.setup", sessionMacName ?? "Mac")
+        signingQueue.async { [deviceName] in
+            let answer: DeviceKeys
+            do {
+                answer = DeviceKeys(keys: try DeviceKeyStore.setUp(mac: macID, reason: reason),
+                                    deviceName: deviceName, error: nil)
+            } catch {
+                answer = DeviceKeys(keys: [:], deviceName: deviceName, error: error.localizedDescription)
+            }
+            if let data = try? JSONEncoder().encode(answer) { session.send(.deviceKeys, data) }
+        }
+    }
+
+    /// Signs for the Mac once the user confirms with Touch ID or Face ID. One request at a time.
+    private func sign(_ request: SignRequest, for session: WireSession) {
+        guard session === self.session, let macID = sessionMacID else { return }
+        signingQueue.async {
+            var response: SignResponse
+            do {
+                let signature = try DeviceKeyStore.sign(request.data, for: request.purpose, mac: macID,
+                                                        reason: request.reason)
+                response = SignResponse(id: request.id, signature: signature, error: nil)
+            } catch {
+                linkLog.error("signing failed: \(error.localizedDescription, privacy: .public)")
+                response = SignResponse(id: request.id, signature: nil, error: error.localizedDescription)
+            }
+            if let data = try? JSONEncoder().encode(response) { session.send(.signResponse, data) }
         }
     }
 
